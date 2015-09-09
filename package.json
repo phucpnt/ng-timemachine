@@ -1,0 +1,32 @@
+{
+  "name": "ng-time-machine",
+  "version": "0.0.1",
+  "description": "Angularjs TimeMachine made easy. Play back forth within a click.",
+  "main": "index.js",
+  "directories": {
+    "example": "example"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "angular",
+    "angularjs"
+  ],
+  "author": "Phuc PNT. <pn.truongphuc@gmail.com>",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "babelify": "^6.3.0",
+    "browserify": "^11.0.1",
+    "gulp": "^3.9.0",
+    "gulp-sourcemaps": "^1.5.2",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0",
+    "watchify": "^3.4.0"
+  },
+  "dependencies": {
+    "angular": "^1.4.5",
+    "lodash": "^3.10.1",
+    "signals": "^1.0.0"
+  }
+}
