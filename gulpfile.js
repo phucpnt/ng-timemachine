@@ -9,13 +9,19 @@ var buffer = require('vinyl-buffer');
 var browserify = require('browserify');
 var watchify = require('watchify');
 var babel = require('babelify');
+var bShim = require('browserify-shim');
 
 function compile(watch) {
 
-  var bundler = watchify(browserify('./src/index.js', {debug: true})
+  var b = browserify('./src/index.js',
+          {
+            debug: true,
+          })
           .external('angular')
           .transform(babel)
-  );
+          .transform(bShim)
+      ;
+  var bundler = watchify(b);
 
   function rebundle() {
     bundler.bundle()
