@@ -4,5 +4,15 @@
 
 var angular = require('angular');
 
-angular.module('ngTimeMachine', []);
+var app = angular.module('ngTimeMachine', []);
+
+app.directive('timeControls', function () {
+
+});
+app.factory('tmStore', function () {
+
+});
+app.run([function () {
+
+}]);
 

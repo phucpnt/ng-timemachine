@@ -8,7 +8,12 @@
 
 var angular = (typeof window !== "undefined" ? window['angular'] : typeof global !== "undefined" ? global['angular'] : null);
 
-angular.module('ngTimeMachine', []);
+var _module = angular.module('ngTimeMachine', []);
+
+_module.directive('timeControls', function () {});
+_module.factory('tmStore', function () {});
+
+_module.run([function () {}]);
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
