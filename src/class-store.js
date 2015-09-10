@@ -1,0 +1,218 @@
+/**
+ * Created by Phuc on 9/10/2015.
+ */
+!function () {
+
+  var angular = require('angular');
+  var _extend = angular.extend;
+  var _forEach = angular.forEach;
+
+
+  function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  class Store {
+
+    constructor(Actions, $q, $ajax, initialState) {
+
+      this.Actions = Actions;
+      this.selectors = [];
+      this.$scopes = [];
+      this.$q = $q;
+      this.$ajax = $ajax;
+      this.cached = {};
+
+      initialState = _extend(this.initialState(), initialState);
+
+      this.state = initialState;
+
+      for (var name in Actions) {
+        var fnName = 'on' + capitalize(name);
+        if (typeof(this[fnName]) === 'function') {
+          Actions[name].add(this[fnName], this);
+        }
+      }
+    }
+
+    initialState() {
+      return {
+        loading_state: []
+      };
+    }
+
+    execute() {
+      this.__initSetup();
+    }
+
+    dispatch(action) {
+      var Actions = this.Actions;
+      if (Actions[action]) {
+        Actions[action].dispatch.apply(this, Array.prototype.slice.call(arguments, 1));
+      }
+    }
+
+    register(selector, handler, skipFirstTime) {
+      this.selectors.push({selector: selector, handler: handler});
+      if (!skipFirstTime) {
+        handler(_extend({}, selector(this.state)));
+      }
+    }
+
+    bindScope($scope) {
+      this.$scopes.push($scope);
+    }
+
+    $digest() {
+      //for (var i = 0; i < this.$scopes.length; i++) {
+      //  var $scope = this.$scopes[i];
+      //  if (!$scope.$$phase) {
+      //    //$digest or $apply
+      //    $scope.$digest();
+      //  }
+      //}
+    }
+
+    trigger(state, force) {
+      console.log('%c >> trigger delay in flow', 'background: yellow', this.__trigger_depth);
+      if (!force && this.__trigger_depth) {
+        return;
+      }
+      for (var i = 0; i < this.selectors.length; i++) {
+        var selector = this.selectors[i];
+        selector.handler(selector.selector(_extend({}, state)));
+      }
+      this.$digest();
+      console.log('%c ============ <<<< CURRENT STATE >>> ========= ', 'background: blue; color: white',
+          state, '======================================');
+    }
+
+    flowStart(promise) {
+      this.__trigger_depth = this.__trigger_depth ? this.__trigger_depth + 1 : 1;
+      console.log('%c >> flow start', 'background: yellow', this.__trigger_depth);
+
+      if (typeof promise.then === 'function') {
+        return promise;
+      }
+      return this.$q((resolve, reject) => {
+        resolve(promise);
+      })
+    }
+
+    flowEnd(state) {
+      this.__trigger_depth--;
+      console.log('%c >> flow end', 'background: yellow', this.__trigger_depth);
+      if (this.__trigger_depth == 0) {
+        this.trigger(state);
+      }
+    }
+
+
+    /***
+     * common store functions
+     */
+    applyState(state, override) {
+      if (override) {
+        this.state = _extend(this.initialState(), state);
+      }
+      this.trigger(state);
+    }
+
+    setPersistStorage(storage) {
+      this.pStorage = storage
+    }
+
+    getPersistStorage() {
+      return this.pStorage;
+    }
+
+    /******************
+     * private function & async query
+     ******************/
+    __markLoading(name, state) {
+      var found = false;
+      _forEach(this.state.loading_state, (item) => {
+        if (item.name === name) {
+          item.state = state;
+          found = true;
+        }
+      });
+
+      if (!found) {
+        this.state.loading_state.push({name: name, state: state});
+      }
+
+      this.trigger(this.state, true);
+    }
+
+    __request(label, url, params, method = 'JSONP', opts = {}) {
+      this.__markLoading(label, true);
+      var defer = this.$q.defer();
+
+      var requestParams = {
+        method: method,
+        url: url
+      };
+
+      if (method === 'JSONP' || method === 'GET') {
+        requestParams.params = params;
+      }
+      switch (method) {
+        case 'JSONP':
+          if (url.indexOf('?') >= -1) {
+            url = url + 'JSON_CALLBACK';
+          }
+          else {
+            url = url + '?JSON_CALLBACK';
+          }
+          requestParams.params = params;
+          break;
+        case 'GET':
+          requestParams.params = params;
+          break;
+        default:
+          requestParams.data = params;
+      }
+
+      this.$ajax(_extend(requestParams, opts))
+          .then((response) => {
+            this.__markLoading(label, false);
+            defer.resolve(response);
+          }, (error) => {
+            defer.reject(error);
+          }
+      );
+
+      return defer.promise;
+    }
+
+    __fromCached(key) {
+
+      if ((key)) {
+        key = JSON.stringify(key);
+      }
+      var chainOr;
+      if (this.cached[key]) {
+        chainOr = () => {
+          var defer = this.$q.defer();
+          defer.resolve(this.cached[key]);
+          return defer.promise;
+        }
+      }
+      else {
+        chainOr = () => {
+          var fn = arguments[0];
+          return fn.apply(self, Array.prototype.slice.call(arguments, 1));
+        }
+      }
+      return {or: chainOr};
+    }
+
+    __initSetup() {
+    }
+
+  }
+
+  module.exports = Store;
+
+}.call(this);

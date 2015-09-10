@@ -9,9 +9,7 @@ var app = angular.module('ngTimeMachine', []);
 app.directive('timeControls', function () {
 
 });
-app.factory('tmStore', function () {
-
-});
+app.factory('tmStore', ['$q', require('./tm-store')]);
 app.run([function () {
 
 }]);
