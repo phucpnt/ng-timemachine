@@ -10,15 +10,17 @@ var browserify = require('browserify');
 var watchify = require('watchify');
 var babel = require('babelify');
 var bShim = require('browserify-shim');
+var cssify = require('cssify');
 
 function compile(watch) {
 
   var b = browserify('./src/index.js',
           {
-            debug: true,
+            debug: true
           })
           .external('angular')
           .transform(babel)
+          .transform(cssify)
           .transform(bShim)
       ;
   var bundler = watchify(b);

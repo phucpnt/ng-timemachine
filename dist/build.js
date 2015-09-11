@@ -1,4 +1,43 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+module.exports = function (css, customDocument) {
+  var doc = customDocument || document;
+  if (doc.createStyleSheet) {
+    var sheet = doc.createStyleSheet()
+    sheet.cssText = css;
+    return sheet.ownerNode;
+  } else {
+    var head = doc.getElementsByTagName('head')[0],
+        style = doc.createElement('style');
+
+    style.type = 'text/css';
+
+    if (style.styleSheet) {
+      style.styleSheet.cssText = css;
+    } else {
+      style.appendChild(doc.createTextNode(css));
+    }
+
+    head.appendChild(style);
+    return style;
+  }
+};
+
+module.exports.byUrl = function(url) {
+  if (document.createStyleSheet) {
+    return document.createStyleSheet(url).ownerNode;
+  } else {
+    var head = document.getElementsByTagName('head')[0],
+        link = document.createElement('link');
+
+    link.rel = 'stylesheet';
+    link.href = url;
+
+    head.appendChild(link);
+    return link;
+  }
+};
+
+},{}],2:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/10/2015.
@@ -246,7 +285,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/9/2015.
@@ -255,6 +294,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 'use strict';
 
 var angular = (typeof window !== "undefined" ? window['angular'] : typeof global !== "undefined" ? global['angular'] : null);
+var cssify = require('cssify');
+
+cssify.byUrl('//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css');
 
 var app = angular.module('ngTimeMachine', []);
 
@@ -264,7 +306,7 @@ app.run([function () {}]);
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./tm-store":3}],3:[function(require,module,exports){
+},{"./tm-store":4,"cssify":1}],4:[function(require,module,exports){
 /**
  * Created by Phuc on 9/10/2015.
  */
@@ -282,7 +324,7 @@ module.exports = function ($q) {
   return Store;
 };
 
-},{"./class-store":1}]},{},[2])
+},{"./class-store":2}]},{},[3])
 
 
 //# sourceMappingURL=build.js.map
