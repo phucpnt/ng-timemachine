@@ -52,39 +52,83 @@
       }
     }
 
-    register(selector, handler, skipFirstTime) {
-      this.selectors.push({selector: selector, handler: handler});
+    register($scope, scopeAttrMap, handleDef, skipFirstTime) {
+      var index = this.selectors.length;
+      var selector = {$scope: $scope, attrMap: scopeAttrMap, handleDef: handleDef};
+      this.selectors.push(selector);
+
+      // free memory
+      $scope.$on('$destroy', function (index, store) {
+        return function () {
+          store.selectors.slice(index, 1);
+        }
+      }(index, this));
+
       if (!skipFirstTime) {
-        handler(_extend({}, selector(this.state)));
+        this.__execSelectorHandler(selector);
       }
     }
 
-    bindScope($scope) {
-      this.$scopes.push($scope);
-    }
+    __execSelectorHandler(selector) {
+      var handleDef = selector.handleDef;
+      var $scope = selector.$scope;
+      var attrMap = selector.attrMap;
 
-    $digest() {
-      //for (var i = 0; i < this.$scopes.length; i++) {
-      //  var $scope = this.$scopes[i];
-      //  if (!$scope.$$phase) {
-      //    //$digest or $apply
-      //    $scope.$digest();
-      //  }
-      //}
+      var result;
+      if (!selector.handleDef) {
+        result = this.state;
+      }
+      else {
+        var fn, fnArgs = [];
+        if (angular.isArray(handleDef)) {
+          fn = handleDef[handleDef.length - 1];
+          fnArgs = handleDef.slice(0, handleDef.length - 1);
+        }
+        else {
+          fn = handleDef;
+        }
+        fnArgs.unshift(this.state);
+        if (typeof fn === 'string') {
+          result = this[fn].apply(this, fnArgs);
+        }
+        else {
+          result = fn.apply(null, fnArgs);
+        }
+      }
+
+      if (angular.isString(attrMap)) {
+        selector.$scope[attrMap] = angular.copy(result);
+      }
+      else {
+        _forEach(attrMap, (scopeAttr, resultAttr) => {
+          $scope[scopeAttr] = angular.copy(result[resultAttr]);
+        })
+      }
+      return true;
     }
 
     trigger(state, force) {
-      console.log('%c >> trigger delay in flow', 'background: yellow', this.__trigger_depth);
+      //console.log('%c >> trigger delay in flow', 'background: yellow', this.__trigger_depth);
       if (!force && this.__trigger_depth) {
         return;
       }
+
+      var deferTrigger = this.$q.defer();
+      var promise = deferTrigger.promise;
+
       for (var i = 0; i < this.selectors.length; i++) {
         var selector = this.selectors[i];
-        selector.handler(selector.selector(_extend({}, state)));
+        this.__execSelectorHandler(selector);
       }
-      this.$digest();
-      console.log('%c ============ <<<< CURRENT STATE >>> ========= ', 'background: blue; color: white',
-          state, '======================================');
+
+      promise.then(function () {
+        console.log('%c ============ <<<< CURRENT STATE >>> ========= ', 'background: blue; color: white',
+            state,
+            '======================================');
+      });
+
+      deferTrigger.resolve(true);
+      return promise;
     }
 
     flowStart(promise) {
