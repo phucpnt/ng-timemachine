@@ -145,8 +145,9 @@
 
     flowEnd(state) {
       this.__trigger_depth--;
-      console.log('%c >> flow end', 'background: yellow', this.__trigger_depth);
-      if (this.__trigger_depth == 0) {
+      //console.log('%c >> flow end', 'background: yellow', this.__trigger_depth);
+      if (this.__trigger_depth <= 0) {
+        this.__trigger_depth = 0;
         this.trigger(state);
       }
     }
@@ -170,23 +171,49 @@
       return this.pStorage;
     }
 
+    mixIn(...mixins) {
+      mixins.reverse().forEach((mixinFn) => {
+        var mixin = mixinFn(this);
+        for (var key in mixin) {
+          var currentFn = this[key];
+          this[key] = mixin[key].call(this, currentFn);
+        }
+      });
+    }
+
+
     /******************
      * private function & async query
      ******************/
     __markLoading(name, state) {
-      var found = false;
-      _forEach(this.state.loading_state, (item) => {
-        if (item.name === name) {
-          item.state = state;
-          found = true;
+      if (typeof name != 'string') {
+        name = JSON.stringify(name);
+      }
+      if (state == false) {
+        var foundIndex = this.state.loading_state.indexOf(name);
+        if (foundIndex > -1) {
+          this.state.loading_state.splice(foundIndex, 1);
         }
-      });
 
-      if (!found) {
-        this.state.loading_state.push({name: name, state: state});
+      }
+      else if (this.state.loading_state.indexOf(name) > -1) {
+        state = false;
+      }
+      else {
+        this.state.loading_state.push(name);
       }
 
-      this.trigger(this.state, true);
+      if (state) {
+        var loadingDeps = this.__getLoadingStateDeps()[name];
+        loadingDeps.forEach(loadingDeps, (name) => {
+          this.state.loading_state.push(name);
+        });
+        this.trigger(this.state, true);
+      }
+    }
+
+    __getLoadingStateDeps() {
+      return {};
     }
 
     __request(label, url, params, method = 'JSONP', opts = {}) {
