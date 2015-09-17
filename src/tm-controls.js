@@ -62,38 +62,10 @@
         inFrozen: '@inFrozen',
         appName: '@appName'
       },
+      template: template,
       link: link
     }
   };
-
-  function Inject(appName, $compile, $rootElement, $rootScope, $store) {
-    var $element = angular.element('<div time-machine />').attr('data-app-name', appName);
-    require(['storejs'], function (Storage) {
-      $store.setPersistStorage(Storage);
-      var frozenIndex = Storage.get(appName + '.__time_machine_frozen');
-      var histories = Storage.get(appName + '.__time_machine_histories');
-      var $nuScope = $rootScope.$new();
-      if (frozenIndex) {
-        $element.attr({
-          'data-frozen-index': frozenIndex,
-          'data-in-frozen': 1
-        });
-        $nuScope.histories = histories;
-      }
-      $rootElement.append($element);
-      $compile($element[0])($nuScope);
-
-      if (frozenIndex) {
-        var nuState = _extend({}, histories[frozenIndex]);
-        delete nuState.__time_machine;
-        $store.applyState(nuState, true);
-      }
-      else {
-        $store.execute();
-      }
-
-    });
-  }
 
   module.exports = Directive;
 

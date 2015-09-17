@@ -2,48 +2,54 @@
  * Created by Phuc on 9/10/2015.
  */
 
-module.exports = function ($q, $ajax) {
+var Store = {};
+var ClassStore = require('./class-store');
+var Signal = require('signals');
+var instance = null;
 
-  var Store = {};
-  var ClassStore = require('./class-store');
-  var Signal = require('signals');
+Store.createClass = function (classDefs, ParentClass = null) {
+  var ParentKlass = ParentClass || ClassStore;
+  var constructor = classDefs.constructor;
 
-  Store.createClass = function (classDefs, ParentClass = null) {
-    var ParentKlass = ParentClass || ClassStore;
-    var ChildKlass;
-    var constructor = classDefs.constructor;
+  function ChildKlass() {
     if (constructor) {
-      ChildKlass = constructor;
+      constructor.apply(this, arguments);
     }
     else {
-      ChildKlass = function () {
-        ParentKlass.apply(this, arguments);
-      };
+      ParentKlass.apply(this, arguments);
     }
-    ChildKlass.prototype = Object.create(ParentKlass.prototype);
+  }
 
-    angular.extend(ChildKlass.prototype, classDefs);
+  console.log(ParentKlass);
+  console.log(ParentKlass.prototype);
+  console.log(Object.create(ParentKlass.prototype));
+  ChildKlass.prototype = Object.create(ParentKlass.prototype);
+  ChildKlass.prototype.constructor = ChildKlass
 
-    ChildKlass.__super__ = ParentKlass.prototype;
+  angular.extend(ChildKlass.prototype, classDefs);
 
-    ChildKlass.createClass = ParentKlass.createClass;
+  ChildKlass.__super__ = ParentKlass.prototype;
 
-    return ChildKlass;
+  ChildKlass.createClass = ParentKlass.createClass;
 
-  };
+  return ChildKlass;
 
-  Store.Define = function (actionNames, storeDefs, initialState = {}, ParentStore = null) {
-
-    var Actions = {};
-    actionNames.forEach((name) => {
-      Actions[name] = new Signal;
-    });
-
-    var NuStore = Store.createClass(storeDefs, ParentStore);
-
-    return NuStore(Actions, $q, $ajax, initialState)
-  };
-
-
-  return Store;
 };
+
+Store.define = function (storeDefs, initialState = {}) {
+  return Store.createClass(storeDefs);
+};
+
+Store.makeActions = function (actionNames) {
+  var Actions = {};
+  actionNames.forEach((name) => {
+    Actions[name] = new Signal;
+  });
+};
+
+Store.getInstance = function () {
+  return instance;
+};
+
+
+module.exports = Store;

@@ -485,6 +485,183 @@ module.exports.byUrl = function(url) {
 }(this));
 
 },{}],3:[function(require,module,exports){
+;(function(win){
+	var store = {},
+		doc = win.document,
+		localStorageName = 'localStorage',
+		scriptTag = 'script',
+		storage
+
+	store.disabled = false
+	store.version = '1.3.17'
+	store.set = function(key, value) {}
+	store.get = function(key, defaultVal) {}
+	store.has = function(key) { return store.get(key) !== undefined }
+	store.remove = function(key) {}
+	store.clear = function() {}
+	store.transact = function(key, defaultVal, transactionFn) {
+		if (transactionFn == null) {
+			transactionFn = defaultVal
+			defaultVal = null
+		}
+		if (defaultVal == null) {
+			defaultVal = {}
+		}
+		var val = store.get(key, defaultVal)
+		transactionFn(val)
+		store.set(key, val)
+	}
+	store.getAll = function() {}
+	store.forEach = function() {}
+
+	store.serialize = function(value) {
+		return JSON.stringify(value)
+	}
+	store.deserialize = function(value) {
+		if (typeof value != 'string') { return undefined }
+		try { return JSON.parse(value) }
+		catch(e) { return value || undefined }
+	}
+
+	// Functions to encapsulate questionable FireFox 3.6.13 behavior
+	// when about.config::dom.storage.enabled === false
+	// See https://github.com/marcuswestin/store.js/issues#issue/13
+	function isLocalStorageNameSupported() {
+		try { return (localStorageName in win && win[localStorageName]) }
+		catch(err) { return false }
+	}
+
+	if (isLocalStorageNameSupported()) {
+		storage = win[localStorageName]
+		store.set = function(key, val) {
+			if (val === undefined) { return store.remove(key) }
+			storage.setItem(key, store.serialize(val))
+			return val
+		}
+		store.get = function(key, defaultVal) {
+			var val = store.deserialize(storage.getItem(key))
+			return (val === undefined ? defaultVal : val)
+		}
+		store.remove = function(key) { storage.removeItem(key) }
+		store.clear = function() { storage.clear() }
+		store.getAll = function() {
+			var ret = {}
+			store.forEach(function(key, val) {
+				ret[key] = val
+			})
+			return ret
+		}
+		store.forEach = function(callback) {
+			for (var i=0; i<storage.length; i++) {
+				var key = storage.key(i)
+				callback(key, store.get(key))
+			}
+		}
+	} else if (doc.documentElement.addBehavior) {
+		var storageOwner,
+			storageContainer
+		// Since #userData storage applies only to specific paths, we need to
+		// somehow link our data to a specific path.  We choose /favicon.ico
+		// as a pretty safe option, since all browsers already make a request to
+		// this URL anyway and being a 404 will not hurt us here.  We wrap an
+		// iframe pointing to the favicon in an ActiveXObject(htmlfile) object
+		// (see: http://msdn.microsoft.com/en-us/library/aa752574(v=VS.85).aspx)
+		// since the iframe access rules appear to allow direct access and
+		// manipulation of the document element, even for a 404 page.  This
+		// document can be used instead of the current document (which would
+		// have been limited to the current path) to perform #userData storage.
+		try {
+			storageContainer = new ActiveXObject('htmlfile')
+			storageContainer.open()
+			storageContainer.write('<'+scriptTag+'>document.w=window</'+scriptTag+'><iframe src="/favicon.ico"></iframe>')
+			storageContainer.close()
+			storageOwner = storageContainer.w.frames[0].document
+			storage = storageOwner.createElement('div')
+		} catch(e) {
+			// somehow ActiveXObject instantiation failed (perhaps some special
+			// security settings or otherwse), fall back to per-path storage
+			storage = doc.createElement('div')
+			storageOwner = doc.body
+		}
+		var withIEStorage = function(storeFunction) {
+			return function() {
+				var args = Array.prototype.slice.call(arguments, 0)
+				args.unshift(storage)
+				// See http://msdn.microsoft.com/en-us/library/ms531081(v=VS.85).aspx
+				// and http://msdn.microsoft.com/en-us/library/ms531424(v=VS.85).aspx
+				storageOwner.appendChild(storage)
+				storage.addBehavior('#default#userData')
+				storage.load(localStorageName)
+				var result = storeFunction.apply(store, args)
+				storageOwner.removeChild(storage)
+				return result
+			}
+		}
+
+		// In IE7, keys cannot start with a digit or contain certain chars.
+		// See https://github.com/marcuswestin/store.js/issues/40
+		// See https://github.com/marcuswestin/store.js/issues/83
+		var forbiddenCharsRegex = new RegExp("[!\"#$%&'()*+,/\\\\:;<=>?@[\\]^`{|}~]", "g")
+		function ieKeyFix(key) {
+			return key.replace(/^d/, '___$&').replace(forbiddenCharsRegex, '___')
+		}
+		store.set = withIEStorage(function(storage, key, val) {
+			key = ieKeyFix(key)
+			if (val === undefined) { return store.remove(key) }
+			storage.setAttribute(key, store.serialize(val))
+			storage.save(localStorageName)
+			return val
+		})
+		store.get = withIEStorage(function(storage, key, defaultVal) {
+			key = ieKeyFix(key)
+			var val = store.deserialize(storage.getAttribute(key))
+			return (val === undefined ? defaultVal : val)
+		})
+		store.remove = withIEStorage(function(storage, key) {
+			key = ieKeyFix(key)
+			storage.removeAttribute(key)
+			storage.save(localStorageName)
+		})
+		store.clear = withIEStorage(function(storage) {
+			var attributes = storage.XMLDocument.documentElement.attributes
+			storage.load(localStorageName)
+			for (var i=0, attr; attr=attributes[i]; i++) {
+				storage.removeAttribute(attr.name)
+			}
+			storage.save(localStorageName)
+		})
+		store.getAll = function(storage) {
+			var ret = {}
+			store.forEach(function(key, val) {
+				ret[key] = val
+			})
+			return ret
+		}
+		store.forEach = withIEStorage(function(storage, callback) {
+			var attributes = storage.XMLDocument.documentElement.attributes
+			for (var i=0, attr; attr=attributes[i]; ++i) {
+				callback(attr.name, store.deserialize(storage.getAttribute(attr.name)))
+			}
+		})
+	}
+
+	try {
+		var testKey = '__storejs__'
+		store.set(testKey, testKey)
+		if (store.get(testKey) != testKey) { store.disabled = true }
+		store.remove(testKey)
+	} catch(e) {
+		store.disabled = true
+	}
+	store.enabled = !store.disabled
+
+	if (typeof module != 'undefined' && module.exports && this.module !== module) { module.exports = store }
+	else if (typeof define === 'function' && define.amd) { define(store) }
+	else { win.store = store }
+
+})(Function('return this')());
+
+},{}],4:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/10/2015.
@@ -806,7 +983,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/9/2015.
@@ -816,20 +993,65 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var angular = (typeof window !== "undefined" ? window['angular'] : typeof global !== "undefined" ? global['angular'] : null);
 var cssify = require('cssify');
-
-cssify.byUrl('//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css');
+var Storage = require('store');
 
 var app = angular.module('ngTimeMachine', []);
+app.value('tmAppName', '__need_your_app_name_override__');
+app.provider('tmStore', function tmStore() {
 
-app.directive('timeControls', require('./tm-controls'));
-app.factory('tmStore', ['$q', require('./tm-store')]);
-app.run([function () {}]);
+  var Store = require('./tm-store');
+  var Actions = null;
+  var StoreClass = null;
+  var initialState = {};
+
+  this.defineStore = function (storeDefs) {
+    StoreClass = Store.createClass(storeDefs);
+  };
+  this.defineActions = function (actions) {
+    Actions = Store.makeActions(actions);
+  };
+  this.initialState = function (state) {
+    initialState = state;
+  };
+
+  this.$get = ['$q', '$http', function storeFactory($q, $http) {
+    return new StoreClass(Actions, $q, $http, initialState);
+  }];
+});
+
+app.directive('timeControls', ['tmStore', require('./tm-controls')]);
+
+app.run(['tmAppName', '$compile', '$rootElement', '$rootScope', 'tmStore', function (appName, $compile, $rootElement, $rootScope, $store) {
+  var $element = angular.element('<div time-controls />').attr('data-app-name', appName);
+  //var $store = AppStore.getInstance();
+  $store.setPersistStorage(Storage);
+  var frozenIndex = Storage.get(appName + '.__time_machine_frozen');
+  var histories = Storage.get(appName + '.__time_machine_histories');
+  var $nuScope = $rootScope.$new();
+  if (frozenIndex) {
+    $element.attr({
+      'data-frozen-index': frozenIndex,
+      'data-in-frozen': 1
+    });
+    $nuScope.histories = histories;
+  }
+  $rootElement.append($element);
+  $compile($element[0])($nuScope);
+
+  if (frozenIndex) {
+    var nuState = _extend({}, histories[frozenIndex]);
+    delete nuState.__time_machine;
+    $store.applyState(nuState, true);
+  } else {
+    $store.execute();
+  }
+}]);
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./tm-controls":6,"./tm-store":7,"cssify":1}],5:[function(require,module,exports){
+},{"./tm-controls":7,"./tm-store":8,"cssify":1,"store":3}],6:[function(require,module,exports){
 module.exports = '<style>\n  .in-frozen-mode {\n    background-color: #2574A9;\n    border-top: 1px solid #2574A9;\n  }\n\n  #tm-editor-instance {\n    height: 500px;\n  }\n</style>\n<nav class="navbar navbar-default navbar-fixed-bottom" ng-class="{\'navbar-inverse in-frozen-mode\': inFrozen}">\n  <div class="container">\n    <div class="navbar-brand" href="#">ngTimeMachine</div>\n    <div ng-if="inFrozen" class="navbar-brand" style="color: #fff;" href="#">In Frozen Time</div>\n    <p class="navbar-text">States <span class="badge">{{histories.length}}</span></p>\n    <button type="button" class="btn btn-info navbar-btn"\n            ng-click="openInjectEditor()"\n            title="Click to inject the register callback results">\n      Injectable Registers <span class="badge">{{injectableRegisters.length}}</span></button>\n\n    <div class="navbar-right">\n      <button type="button" ng-click="unFreeze()" ng-if="inFrozen" class="btn btn-danger">UnFreeze</button>\n      <button type="button" ng-click="frozenTime(timeline_index)" class="btn btn-success"\n              title="Click to frozen the next time you reload the browser">Frozen\n        Timeline <span class="badge">{{timeline_index + 1}}</span></button>\n      <button type="button" class="btn btn-default navbar-btn" ng-click="go(-1)"><i\n          class="fa fa-chevron-left"></i> Previous\n        <button type="button" class="btn btn-default navbar-btn" ng-click="go(1)">Next <i\n            class="fa fa-chevron-right"></i></button>\n      </button>\n    </div>\n  </div>\n</nav>\n\n<!-------- Inject register Editor ------------------>\n<div id="tm-inject-editor" class="modal fade" tabindex="-1" role="dialog">\n  <div class="modal-dialog modal-lg">\n    <div class="modal-content">\n      <div class="modal-header">\n        <h4>ngTimeMachine - Inject results to selected register\n          <div class="pull-right">\n            <button class="btn btn-sm btn-warning" ng-click="saveRegistersPermanent()"\n                    title="Save Injected results of registers permanently">Save Permanent\n            </button>\n            <button class="btn btn-sm btn-success" ng-click="applyInjectResult()">Apply Current Timeline\n            </button>\n          </div>\n        </h4>\n      </div>\n      <div class="modal-body">\n        <div class="row">\n          <div class="col-md-3">\n            <div class="list-group">\n              <button ng-repeat="item in injectableRegisters"\n                      ng-click="editRegisterResult($index)"\n                      type="button" class="list-group-item"\n                      ng-class="{active: item.selected}"\n                  >Register #{{item.storeIndex}}\n              </button>\n            </div>\n          </div>\n          <div class="col-md-9">\n            <div class="chosen-register">\n              <pre>{{chosenRegister.key}}</pre>\n            </div>\n            <div id="tm-editor-instance"></div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>';
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/9/2015.
@@ -896,97 +1118,77 @@ module.exports = '<style>\n  .in-frozen-mode {\n    background-color: #2574A9;\n
         inFrozen: '@inFrozen',
         appName: '@appName'
       },
+      template: template,
       link: link
     };
   };
-
-  function Inject(appName, $compile, $rootElement, $rootScope, $store) {
-    var $element = angular.element('<div time-machine />').attr('data-app-name', appName);
-    require(['storejs'], function (Storage) {
-      $store.setPersistStorage(Storage);
-      var frozenIndex = Storage.get(appName + '.__time_machine_frozen');
-      var histories = Storage.get(appName + '.__time_machine_histories');
-      var $nuScope = $rootScope.$new();
-      if (frozenIndex) {
-        $element.attr({
-          'data-frozen-index': frozenIndex,
-          'data-in-frozen': 1
-        });
-        $nuScope.histories = histories;
-      }
-      $rootElement.append($element);
-      $compile($element[0])($nuScope);
-
-      if (frozenIndex) {
-        var nuState = _extend({}, histories[frozenIndex]);
-        delete nuState.__time_machine;
-        $store.applyState(nuState, true);
-      } else {
-        $store.execute();
-      }
-    });
-  }
 
   module.exports = Directive;
 }).call(undefined);
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./templates/tm-controls.html":5}],7:[function(require,module,exports){
+},{"./templates/tm-controls.html":6}],8:[function(require,module,exports){
 /**
  * Created by Phuc on 9/10/2015.
  */
 
 'use strict';
 
-module.exports = function ($q, $ajax) {
+var Store = {};
+var ClassStore = require('./class-store');
+var Signal = require('signals');
+var instance = null;
 
-  var Store = {};
-  var ClassStore = require('./class-store');
-  var Signal = require('signals');
+Store.createClass = function (classDefs) {
+  var ParentClass = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
 
-  Store.createClass = function (classDefs) {
-    var ParentClass = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+  var ParentKlass = ParentClass || ClassStore;
+  var constructor = classDefs.constructor;
 
-    var ParentKlass = ParentClass || ClassStore;
-    var ChildKlass;
-    var constructor = classDefs.constructor;
+  function ChildKlass() {
     if (constructor) {
-      ChildKlass = constructor;
+      constructor.apply(this, arguments);
     } else {
-      ChildKlass = function () {
-        ParentKlass.apply(this, arguments);
-      };
+      ParentKlass.apply(this, arguments);
     }
-    ChildKlass.prototype = Object.create(ParentKlass.prototype);
+  }
 
-    angular.extend(ChildKlass.prototype, classDefs);
+  console.log(ParentKlass);
+  console.log(ParentKlass.prototype);
+  console.log(Object.create(ParentKlass.prototype));
+  ChildKlass.prototype = Object.create(ParentKlass.prototype);
+  ChildKlass.prototype.constructor = ChildKlass;
 
-    ChildKlass.__super__ = ParentKlass.prototype;
+  angular.extend(ChildKlass.prototype, classDefs);
 
-    ChildKlass.createClass = ParentKlass.createClass;
+  ChildKlass.__super__ = ParentKlass.prototype;
 
-    return ChildKlass;
-  };
+  ChildKlass.createClass = ParentKlass.createClass;
 
-  Store.Define = function (actionNames, storeDefs) {
-    var initialState = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
-    var ParentStore = arguments.length <= 3 || arguments[3] === undefined ? null : arguments[3];
-
-    var Actions = {};
-    actionNames.forEach(function (name) {
-      Actions[name] = new Signal();
-    });
-
-    var NuStore = Store.createClass(storeDefs, ParentStore);
-
-    return NuStore(Actions, $q, $ajax, initialState);
-  };
-
-  return Store;
+  return ChildKlass;
 };
 
-},{"./class-store":3,"signals":2}]},{},[4])
+Store.define = function (storeDefs) {
+  var initialState = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
+  return Store.createClass(storeDefs);
+};
+
+Store.makeActions = function (actionNames) {
+  var Actions = {};
+  actionNames.forEach(function (name) {
+    Actions[name] = new Signal();
+  });
+};
+
+Store.getInstance = function () {
+  return instance;
+};
+
+module.exports = Store;
+
+},{"./class-store":4,"signals":2}]},{},[5])
 
 
 //# sourceMappingURL=build.js.map
