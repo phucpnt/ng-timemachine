@@ -8,9 +8,12 @@ var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var browserify = require('browserify');
 var watchify = require('watchify');
+
+// browserify transformers
 var babel = require('babelify');
 var bShim = require('browserify-shim');
 var cssify = require('cssify');
+var p = require('partialify');
 
 function compile(watch) {
 
@@ -19,6 +22,7 @@ function compile(watch) {
             debug: true
           })
           .external('angular')
+          .transform(p)
           .transform(babel)
           .transform(cssify)
           .transform(bShim)

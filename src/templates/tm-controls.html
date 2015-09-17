@@ -1,0 +1,72 @@
+<style>
+  .in-frozen-mode {
+    background-color: #2574A9;
+    border-top: 1px solid #2574A9;
+  }
+
+  #tm-editor-instance {
+    height: 500px;
+  }
+</style>
+<nav class="navbar navbar-default navbar-fixed-bottom" ng-class="{'navbar-inverse in-frozen-mode': inFrozen}">
+  <div class="container">
+    <div class="navbar-brand" href="#">ngTimeMachine</div>
+    <div ng-if="inFrozen" class="navbar-brand" style="color: #fff;" href="#">In Frozen Time</div>
+    <p class="navbar-text">States <span class="badge">{{histories.length}}</span></p>
+    <button type="button" class="btn btn-info navbar-btn"
+            ng-click="openInjectEditor()"
+            title="Click to inject the register callback results">
+      Injectable Registers <span class="badge">{{injectableRegisters.length}}</span></button>
+
+    <div class="navbar-right">
+      <button type="button" ng-click="unFreeze()" ng-if="inFrozen" class="btn btn-danger">UnFreeze</button>
+      <button type="button" ng-click="frozenTime(timeline_index)" class="btn btn-success"
+              title="Click to frozen the next time you reload the browser">Frozen
+        Timeline <span class="badge">{{timeline_index + 1}}</span></button>
+      <button type="button" class="btn btn-default navbar-btn" ng-click="go(-1)"><i
+          class="fa fa-chevron-left"></i> Previous
+        <button type="button" class="btn btn-default navbar-btn" ng-click="go(1)">Next <i
+            class="fa fa-chevron-right"></i></button>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-------- Inject register Editor ------------------>
+<div id="tm-inject-editor" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4>ngTimeMachine - Inject results to selected register
+          <div class="pull-right">
+            <button class="btn btn-sm btn-warning" ng-click="saveRegistersPermanent()"
+                    title="Save Injected results of registers permanently">Save Permanent
+            </button>
+            <button class="btn btn-sm btn-success" ng-click="applyInjectResult()">Apply Current Timeline
+            </button>
+          </div>
+        </h4>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-3">
+            <div class="list-group">
+              <button ng-repeat="item in injectableRegisters"
+                      ng-click="editRegisterResult($index)"
+                      type="button" class="list-group-item"
+                      ng-class="{active: item.selected}"
+                  >Register #{{item.storeIndex}}
+              </button>
+            </div>
+          </div>
+          <div class="col-md-9">
+            <div class="chosen-register">
+              <pre>{{chosenRegister.key}}</pre>
+            </div>
+            <div id="tm-editor-instance"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

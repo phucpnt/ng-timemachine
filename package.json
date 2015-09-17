@@ -15,7 +15,7 @@
   ],
   "author": "Phuc PNT. <pn.truongphuc@gmail.com>",
   "license": "Apache-2.0",
-  "browserify-shim":{
+  "browserify-shim": {
     "angular": "global:angular"
   },
   "devDependencies": {
@@ -33,6 +33,7 @@
   "dependencies": {
     "angular": "^1.4.5",
     "lodash": "^3.10.1",
+    "partialify": "^3.1.5",
     "signals": "^1.0.0"
   }
 }

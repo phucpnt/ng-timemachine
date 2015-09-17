@@ -6,7 +6,7 @@
   var angular = require('angular');
   var _isUndefined = angular.isUndefined;
   var _extend = angular.extend;
-
+  var template = require('./templates/tm-controls.html');
 
   var Directive = function ($store) {
 
