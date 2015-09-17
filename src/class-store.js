@@ -18,7 +18,6 @@
 
       this.Actions = Actions;
       this.selectors = [];
-      this.$scopes = [];
       this.$q = $q;
       this.$ajax = $ajax;
       this.cached = {};
@@ -228,6 +227,9 @@
       if (method === 'JSONP' || method === 'GET') {
         requestParams.params = params;
       }
+      /**
+       * FIXME: need test
+       */
       switch (method) {
         case 'JSONP':
           if (url.indexOf('?') >= -1) {

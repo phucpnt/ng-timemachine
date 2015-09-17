@@ -511,7 +511,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
       this.Actions = Actions;
       this.selectors = [];
-      this.$scopes = [];
       this.$q = $q;
       this.$ajax = $ajax;
       this.cached = {};
@@ -550,41 +549,80 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
       }
     }, {
       key: 'register',
-      value: function register(selector, handler, skipFirstTime) {
-        this.selectors.push({ selector: selector, handler: handler });
+      value: function register($scope, scopeAttrMap, handleDef, skipFirstTime) {
+        var index = this.selectors.length;
+        var selector = { $scope: $scope, attrMap: scopeAttrMap, handleDef: handleDef };
+        this.selectors.push(selector);
+
+        // free memory
+        $scope.$on('$destroy', (function (index, store) {
+          return function () {
+            store.selectors.slice(index, 1);
+          };
+        })(index, this));
+
         if (!skipFirstTime) {
-          handler(_extend({}, selector(this.state)));
+          this.__execSelectorHandler(selector);
         }
       }
     }, {
-      key: 'bindScope',
-      value: function bindScope($scope) {
-        this.$scopes.push($scope);
-      }
-    }, {
-      key: '$digest',
-      value: function $digest() {
-        //for (var i = 0; i < this.$scopes.length; i++) {
-        //  var $scope = this.$scopes[i];
-        //  if (!$scope.$$phase) {
-        //    //$digest or $apply
-        //    $scope.$digest();
-        //  }
-        //}
+      key: '__execSelectorHandler',
+      value: function __execSelectorHandler(selector) {
+        var handleDef = selector.handleDef;
+        var $scope = selector.$scope;
+        var attrMap = selector.attrMap;
+
+        var result;
+        if (!selector.handleDef) {
+          result = this.state;
+        } else {
+          var fn,
+              fnArgs = [];
+          if (angular.isArray(handleDef)) {
+            fn = handleDef[handleDef.length - 1];
+            fnArgs = handleDef.slice(0, handleDef.length - 1);
+          } else {
+            fn = handleDef;
+          }
+          fnArgs.unshift(this.state);
+          if (typeof fn === 'string') {
+            result = this[fn].apply(this, fnArgs);
+          } else {
+            result = fn.apply(null, fnArgs);
+          }
+        }
+
+        if (angular.isString(attrMap)) {
+          selector.$scope[attrMap] = angular.copy(result);
+        } else {
+          _forEach(attrMap, function (scopeAttr, resultAttr) {
+            $scope[scopeAttr] = angular.copy(result[resultAttr]);
+          });
+        }
+        return true;
       }
     }, {
       key: 'trigger',
       value: function trigger(state, force) {
-        console.log('%c >> trigger delay in flow', 'background: yellow', this.__trigger_depth);
+        //console.log('%c >> trigger delay in flow', 'background: yellow', this.__trigger_depth);
         if (!force && this.__trigger_depth) {
           return;
         }
+
+        var deferTrigger = this.$q.defer();
+        var promise = deferTrigger.promise;
+
         for (var i = 0; i < this.selectors.length; i++) {
           var selector = this.selectors[i];
-          selector.handler(selector.selector(_extend({}, state)));
+          this.__execSelectorHandler(selector);
         }
-        this.$digest();
-        console.log('%c ============ <<<< CURRENT STATE >>> ========= ', 'background: blue; color: white', state, '======================================');
+
+        promise.then(function () {
+          console.log('%c ============ <<<< CURRENT STATE >>> ========= ', 'background: blue; color: white', state, '======================================');
+        });
+
+        deferTrigger.resolve(true);
+        return promise;
       }
     }, {
       key: 'flowStart',
@@ -603,8 +641,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
       key: 'flowEnd',
       value: function flowEnd(state) {
         this.__trigger_depth--;
-        console.log('%c >> flow end', 'background: yellow', this.__trigger_depth);
-        if (this.__trigger_depth == 0) {
+        //console.log('%c >> flow end', 'background: yellow', this.__trigger_depth);
+        if (this.__trigger_depth <= 0) {
+          this.__trigger_depth = 0;
           this.trigger(state);
         }
       }
@@ -630,6 +669,23 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
       value: function getPersistStorage() {
         return this.pStorage;
       }
+    }, {
+      key: 'mixIn',
+      value: function mixIn() {
+        var _this = this;
+
+        for (var _len = arguments.length, mixins = Array(_len), _key = 0; _key < _len; _key++) {
+          mixins[_key] = arguments[_key];
+        }
+
+        mixins.reverse().forEach(function (mixinFn) {
+          var mixin = mixinFn(_this);
+          for (var key in mixin) {
+            var currentFn = _this[key];
+            _this[key] = mixin[key].call(_this, currentFn);
+          }
+        });
+      }
 
       /******************
        * private function & async query
@@ -637,24 +693,39 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     }, {
       key: '__markLoading',
       value: function __markLoading(name, state) {
-        var found = false;
-        _forEach(this.state.loading_state, function (item) {
-          if (item.name === name) {
-            item.state = state;
-            found = true;
-          }
-        });
+        var _this2 = this;
 
-        if (!found) {
-          this.state.loading_state.push({ name: name, state: state });
+        if (typeof name != 'string') {
+          name = JSON.stringify(name);
+        }
+        if (state == false) {
+          var foundIndex = this.state.loading_state.indexOf(name);
+          if (foundIndex > -1) {
+            this.state.loading_state.splice(foundIndex, 1);
+          }
+        } else if (this.state.loading_state.indexOf(name) > -1) {
+          state = false;
+        } else {
+          this.state.loading_state.push(name);
         }
 
-        this.trigger(this.state, true);
+        if (state) {
+          var loadingDeps = this.__getLoadingStateDeps()[name];
+          loadingDeps.forEach(loadingDeps, function (name) {
+            _this2.state.loading_state.push(name);
+          });
+          this.trigger(this.state, true);
+        }
+      }
+    }, {
+      key: '__getLoadingStateDeps',
+      value: function __getLoadingStateDeps() {
+        return {};
       }
     }, {
       key: '__request',
       value: function __request(label, url, params) {
-        var _this = this;
+        var _this3 = this;
 
         var method = arguments.length <= 3 || arguments[3] === undefined ? 'JSONP' : arguments[3];
         var opts = arguments.length <= 4 || arguments[4] === undefined ? {} : arguments[4];
@@ -670,6 +741,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         if (method === 'JSONP' || method === 'GET') {
           requestParams.params = params;
         }
+        /**
+         * FIXME: need test
+         */
         switch (method) {
           case 'JSONP':
             if (url.indexOf('?') >= -1) {
@@ -687,7 +761,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         }
 
         this.$ajax(_extend(requestParams, opts)).then(function (response) {
-          _this.__markLoading(label, false);
+          _this3.__markLoading(label, false);
           defer.resolve(response);
         }, function (error) {
           defer.reject(error);
@@ -698,7 +772,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     }, {
       key: '__fromCached',
       value: function __fromCached(key) {
-        var _this2 = this,
+        var _this4 = this,
             _arguments = arguments;
 
         if (key) {
@@ -707,8 +781,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         var chainOr;
         if (this.cached[key]) {
           chainOr = function () {
-            var defer = _this2.$q.defer();
-            defer.resolve(_this2.cached[key]);
+            var defer = _this4.$q.defer();
+            defer.resolve(_this4.cached[key]);
             return defer.promise;
           };
         } else {
@@ -747,13 +821,115 @@ cssify.byUrl('//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css');
 
 var app = angular.module('ngTimeMachine', []);
 
-app.directive('timeControls', function () {});
+app.directive('timeControls', require('./tm-controls'));
 app.factory('tmStore', ['$q', require('./tm-store')]);
 app.run([function () {}]);
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./tm-store":5,"cssify":1}],5:[function(require,module,exports){
+},{"./tm-controls":5,"./tm-store":6,"cssify":1}],5:[function(require,module,exports){
+(function (global){
+/**
+ * Created by Phuc on 9/9/2015.
+ */
+'use strict';
+
+!(function () {
+
+  var angular = (typeof window !== "undefined" ? window['angular'] : typeof global !== "undefined" ? global['angular'] : null);
+  var _isUndefined = angular.isUndefined;
+  var _extend = angular.extend;
+
+  var Directive = function Directive($store) {
+
+    var link = function link($scope, $element, $attr) {
+      var appName = $scope.appName || '';
+
+      function getStorageKey(key) {
+        return appName + '.' + key;
+      }
+
+      $scope.histories = $store.getPersistStorage().get(getStorageKey('__time_machine_histories')) || [];
+      $store.register(function (state) {
+        return state;
+      }, function (state) {
+        if (_isUndefined(state.__time_machine)) {
+          state.__time_machine = $scope.histories.length;
+          state.loading_state = _extend({}, state.loading_state); // not deep clone
+          $scope.timeline_index = $scope.histories.length;
+          $scope.histories.push(state);
+        } else {
+          $scope.timeline_index = state.__time_machine;
+        }
+      });
+
+      $scope.go = function (step) {
+        var index = $scope.timeline_index + step;
+        if (index > 0 && index < $scope.histories.length) {
+          var state = $scope.histories[index];
+          console.log(state.loading_state);
+          $store.applyState(state);
+        }
+      };
+
+      $scope.frozenTime = function (timelineIndex) {
+        var Storage = $store.getPersistStorage();
+        Storage.set(getStorageKey('__time_machine_frozen'), timelineIndex);
+        Storage.set(getStorageKey('__time_machine_histories'), $scope.histories);
+        window.location.reload();
+      };
+
+      $scope.unFreeze = function () {
+        var Storage = $store.getPersistStorage();
+        Storage.remove(getStorageKey('__time_machine_frozen'));
+        Storage.remove(getStorageKey('__time_machine_histories'));
+        window.location.reload();
+      };
+    };
+
+    /// directive declaration
+    return {
+      scope: {
+        inFrozen: '@inFrozen',
+        appName: '@appName'
+      },
+      link: link
+    };
+  };
+
+  function Inject(appName, $compile, $rootElement, $rootScope, $store) {
+    var $element = angular.element('<div time-machine />').attr('data-app-name', appName);
+    require(['storejs'], function (Storage) {
+      $store.setPersistStorage(Storage);
+      var frozenIndex = Storage.get(appName + '.__time_machine_frozen');
+      var histories = Storage.get(appName + '.__time_machine_histories');
+      var $nuScope = $rootScope.$new();
+      if (frozenIndex) {
+        $element.attr({
+          'data-frozen-index': frozenIndex,
+          'data-in-frozen': 1
+        });
+        $nuScope.histories = histories;
+      }
+      $rootElement.append($element);
+      $compile($element[0])($nuScope);
+
+      if (frozenIndex) {
+        var nuState = _extend({}, histories[frozenIndex]);
+        delete nuState.__time_machine;
+        $store.applyState(nuState, true);
+      } else {
+        $store.execute();
+      }
+    });
+  }
+
+  module.exports = Directive;
+}).call(undefined);
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+
+},{}],6:[function(require,module,exports){
 /**
  * Created by Phuc on 9/10/2015.
  */
@@ -766,32 +942,40 @@ module.exports = function ($q, $ajax) {
   var ClassStore = require('./class-store');
   var Signal = require('signals');
 
-  Store.createClass = function (storeDefs) {
-    var NuStore;
-    if (typeof storeDefs.constructor === 'function') {
-      NuStore = storeDefs.constructor;
+  Store.createClass = function (classDefs) {
+    var ParentClass = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+
+    var ParentKlass = ParentClass || ClassStore;
+    var ChildKlass;
+    var constructor = classDefs.constructor;
+    if (constructor) {
+      ChildKlass = constructor;
     } else {
-      NuStore = function () {
-        ClassStore.call(this);
+      ChildKlass = function () {
+        ParentKlass.apply(this, arguments);
       };
     }
+    ChildKlass.prototype = Object.create(ParentKlass.prototype);
 
-    NuStore.prototype = Object.create(ClassStore.prototype);
-    NuStore.prototype.constructor = NuStore;
-    NuStore.prototype.__super__ = ClassStore;
+    angular.extend(ChildKlass.prototype, classDefs);
 
-    return NuStore;
+    ChildKlass.__super__ = ParentKlass.prototype;
+
+    ChildKlass.createClass = ParentKlass.createClass;
+
+    return ChildKlass;
   };
 
   Store.Define = function (actionNames, storeDefs) {
     var initialState = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+    var ParentStore = arguments.length <= 3 || arguments[3] === undefined ? null : arguments[3];
 
     var Actions = {};
     actionNames.forEach(function (name) {
       Actions[name] = new Signal();
     });
 
-    var NuStore = Store.createClass(storeDefs);
+    var NuStore = Store.createClass(storeDefs, ParentStore);
 
     return NuStore(Actions, $q, $ajax, initialState);
   };

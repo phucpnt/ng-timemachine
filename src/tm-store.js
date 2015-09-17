@@ -8,32 +8,38 @@ module.exports = function ($q, $ajax) {
   var ClassStore = require('./class-store');
   var Signal = require('signals');
 
-  Store.createClass = function (storeDefs) {
-    var NuStore;
-    if (typeof storeDefs.constructor === 'function') {
-      NuStore = storeDefs.constructor;
+  Store.createClass = function (classDefs, ParentClass = null) {
+    var ParentKlass = ParentClass || ClassStore;
+    var ChildKlass;
+    var constructor = classDefs.constructor;
+    if (constructor) {
+      ChildKlass = constructor;
     }
     else {
-      NuStore = function () {
-        ClassStore.call(this);
-      }
+      ChildKlass = function () {
+        ParentKlass.apply(this, arguments);
+      };
     }
+    ChildKlass.prototype = Object.create(ParentKlass.prototype);
 
-    NuStore.prototype = Object.create(ClassStore.prototype);
-    NuStore.prototype.constructor = NuStore;
-    NuStore.prototype.__super__ = ClassStore;
+    angular.extend(ChildKlass.prototype, classDefs);
 
-    return NuStore;
+    ChildKlass.__super__ = ParentKlass.prototype;
+
+    ChildKlass.createClass = ParentKlass.createClass;
+
+    return ChildKlass;
+
   };
 
-  Store.Define = function (actionNames, storeDefs, initialState = {}) {
+  Store.Define = function (actionNames, storeDefs, initialState = {}, ParentStore = null) {
 
     var Actions = {};
     actionNames.forEach((name) => {
       Actions[name] = new Signal;
     });
 
-    var NuStore = Store.createClass(storeDefs);
+    var NuStore = Store.createClass(storeDefs, ParentStore);
 
     return NuStore(Actions, $q, $ajax, initialState)
   };
