@@ -8,31 +8,31 @@ var Signal = require('signals');
 var instance = null;
 
 Store.createClass = function (classDefs, ParentClass = null) {
-  var ParentKlass = ParentClass || ClassStore;
+  var ParentClass = ParentClass || ClassStore;
   var constructor = classDefs.constructor;
 
-  function ChildKlass() {
-    if (constructor) {
+  function ChildClass() {
+    if (classDefs.hasOwnProperty('constructor')) {
       constructor.apply(this, arguments);
     }
     else {
-      ParentKlass.apply(this, arguments);
+      ParentClass.apply(this, arguments);
     }
   }
 
-  console.log(ParentKlass);
-  console.log(ParentKlass.prototype);
-  console.log(Object.create(ParentKlass.prototype));
-  ChildKlass.prototype = Object.create(ParentKlass.prototype);
-  ChildKlass.prototype.constructor = ChildKlass
+  ChildClass.prototype = Object.create(ParentClass.prototype);
+  ChildClass.prototype.constructor = ChildClass;
 
-  angular.extend(ChildKlass.prototype, classDefs);
+  angular.extend(ChildClass.prototype, classDefs);
 
-  ChildKlass.__super__ = ParentKlass.prototype;
+  ChildClass.__super__ = ParentClass.prototype;
 
-  ChildKlass.createClass = ParentKlass.createClass;
+  ChildClass.createClass = ParentClass.createClass;
 
-  return ChildKlass;
+  console.log(ChildClass);
+
+
+  return ChildClass;
 
 };
 

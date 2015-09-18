@@ -32,6 +32,7 @@
           Actions[name].add(this[fnName], this);
         }
       }
+      console.log('TEST CONSTRUCTOR');
     }
 
     initialState() {

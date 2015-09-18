@@ -702,6 +702,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
           Actions[name].add(this[fnName], this);
         }
       }
+      console.log('TEST CONSTRUCTOR');
     }
 
     _createClass(Store, [{
@@ -1015,6 +1016,7 @@ app.provider('tmStore', function tmStore() {
   };
 
   this.$get = ['$q', '$http', function storeFactory($q, $http) {
+    console.log(StoreClass);
     return new StoreClass(Actions, $q, $http, initialState);
   }];
 });
@@ -1024,6 +1026,7 @@ app.directive('timeControls', ['tmStore', require('./tm-controls')]);
 app.run(['tmAppName', '$compile', '$rootElement', '$rootScope', 'tmStore', function (appName, $compile, $rootElement, $rootScope, $store) {
   var $element = angular.element('<div time-controls />').attr('data-app-name', appName);
   //var $store = AppStore.getInstance();
+  console.log($store);
   $store.setPersistStorage(Storage);
   var frozenIndex = Storage.get(appName + '.__time_machine_frozen');
   var histories = Storage.get(appName + '.__time_machine_histories');
@@ -1143,30 +1146,29 @@ var instance = null;
 Store.createClass = function (classDefs) {
   var ParentClass = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
 
-  var ParentKlass = ParentClass || ClassStore;
+  var ParentClass = ParentClass || ClassStore;
   var constructor = classDefs.constructor;
 
-  function ChildKlass() {
-    if (constructor) {
+  function ChildClass() {
+    if (classDefs.hasOwnProperty('constructor')) {
       constructor.apply(this, arguments);
     } else {
-      ParentKlass.apply(this, arguments);
+      ParentClass.apply(this, arguments);
     }
   }
 
-  console.log(ParentKlass);
-  console.log(ParentKlass.prototype);
-  console.log(Object.create(ParentKlass.prototype));
-  ChildKlass.prototype = Object.create(ParentKlass.prototype);
-  ChildKlass.prototype.constructor = ChildKlass;
+  ChildClass.prototype = Object.create(ParentClass.prototype);
+  ChildClass.prototype.constructor = ChildClass;
 
-  angular.extend(ChildKlass.prototype, classDefs);
+  angular.extend(ChildClass.prototype, classDefs);
 
-  ChildKlass.__super__ = ParentKlass.prototype;
+  ChildClass.__super__ = ParentClass.prototype;
 
-  ChildKlass.createClass = ParentKlass.createClass;
+  ChildClass.createClass = ParentClass.createClass;
 
-  return ChildKlass;
+  console.log(ChildClass);
+
+  return ChildClass;
 };
 
 Store.define = function (storeDefs) {

@@ -20,6 +20,11 @@
       }
     });
 
+  }]);
+
+  app.directive('directiveTodo', ['tmStore', function($store){
+
+
 
   }]);
 
