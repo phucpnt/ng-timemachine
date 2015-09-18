@@ -23,6 +23,7 @@
     "browserify": "^11.0.1",
     "browserify-shim": "^3.8.10",
     "gulp": "^3.9.0",
+    "gulp-copy": "0.0.2",
     "gulp-gh-pages": "^0.5.2",
     "gulp-sourcemaps": "^1.5.2",
     "vinyl-buffer": "^1.0.0",

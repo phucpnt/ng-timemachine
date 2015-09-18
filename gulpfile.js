@@ -9,6 +9,7 @@ var buffer = require('vinyl-buffer');
 var browserify = require('browserify');
 var watchify = require('watchify');
 var ghPages = require('gulp-gh-pages');
+var copy = require('gulp-copy');
 
 // browserify transformers
 var babel = require('babelify');
@@ -64,13 +65,16 @@ gulp.task('watch', function () {
   return watch();
 });
 
-gulp.task('deploy', function(){
 
-  gulp.task('deploy', function() {
-    return gulp.src('./dist/**/*')
-        .pipe(ghPages());
-  });
-
+gulp.task('build-ghpages', function () {
+  return gulp.src(['./dist/**/*', './example/**/*'])
+      .pipe(copy('./gh-pages'))
 });
+
+gulp.task('push', ['build-ghpages'], function () {
+  return gulp.src(['./gh-pages/**/*'])
+      .pipe(ghPages({push: false}));
+});
+
 
 gulp.task('default', ['watch']);
