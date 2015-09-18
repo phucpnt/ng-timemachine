@@ -1104,6 +1104,12 @@ module.exports = '<style>\n  .in-frozen-mode {\n    background-color: #2574A9;\n
       };
 
       $scope.frozenTime = function (timelineIndex) {
+
+        if (timelineIndex == 0) {
+          alert('Nothing happened yet...');
+          return;
+        }
+
         var Storage = $store.getPersistStorage();
         Storage.set(getStorageKey('__time_machine_frozen'), timelineIndex);
         Storage.set(getStorageKey('__time_machine_histories'), $scope.histories);
