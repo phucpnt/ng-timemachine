@@ -745,6 +745,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     }, {
       key: '__execSelectorHandler',
       value: function __execSelectorHandler(selector) {
+        var state = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+
+        if (state == null) {
+          state = this.state;
+        }
+
         var handleDef = selector.handleDef;
         var $scope = selector.$scope;
         var attrMap = selector.attrMap;
@@ -761,7 +767,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
           } else {
             fn = handleDef;
           }
-          fnArgs.unshift(angular.extend({}, this.state));
+          fnArgs.unshift(angular.extend({}, state));
           if (typeof fn === 'string') {
             result = this[fn].apply(this, fnArgs);
           } else {
@@ -791,7 +797,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
         for (var i = 0; i < this.selectors.length; i++) {
           var selector = this.selectors[i];
-          this.__execSelectorHandler(selector);
+          this.__execSelectorHandler(selector, state);
         }
 
         promise.then(function () {
@@ -1062,6 +1068,7 @@ module.exports = '<style>\n  .in-frozen-mode {\n    background-color: #2574A9;\n
   var angular = (typeof window !== "undefined" ? window['angular'] : typeof global !== "undefined" ? global['angular'] : null);
   var _isUndefined = angular.isUndefined;
   var _extend = angular.extend;
+  var _clone = angular.copy;
   var template = require('./templates/tm-controls.html');
 
   var Directive = function Directive($store) {
@@ -1075,19 +1082,21 @@ module.exports = '<style>\n  .in-frozen-mode {\n    background-color: #2574A9;\n
 
       $scope.histories = $store.getPersistStorage().get(getStorageKey('__time_machine_histories')) || [];
       $store.register($scope, 'timeline_index', function (state) {
+        var index;
         if (_isUndefined(state.__time_machine)) {
-          state.__time_machine = $scope.histories.length;
-          state.loading_state = _extend({}, state.loading_state); // not deep clone
-          $scope.histories.push(state);
+          var cState = _clone(state);
+          index = cState.__time_machine = $scope.histories.length;
+          $scope.histories.push(cState);
+        } else {
+          index = state.__time_machine;
         }
-        return state.__time_machine;
+        return index;
       });
 
       $scope.go = function (step) {
         var index = $scope.timeline_index + step;
-        if (index > 0 && index < $scope.histories.length) {
+        if (index >= 0 && index < $scope.histories.length) {
           var state = $scope.histories[index];
-          console.log(state.loading_state);
           $store.applyState(state);
         }
       };
@@ -1184,4 +1193,4 @@ module.exports = Store;
 },{"./class-store":4,"signals":2}]},{},[5])
 
 
-//# sourceMappingURL=build.js.map
+//# sourceMappingURL=ng-time-machine.js.map

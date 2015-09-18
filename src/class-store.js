@@ -68,7 +68,12 @@
       }
     }
 
-    __execSelectorHandler(selector) {
+    __execSelectorHandler(selector, state = null) {
+
+      if (state == null) {
+        state = this.state;
+      }
+
       var handleDef = selector.handleDef;
       var $scope = selector.$scope;
       var attrMap = selector.attrMap;
@@ -86,7 +91,7 @@
         else {
           fn = handleDef;
         }
-        fnArgs.unshift(angular.extend({}, this.state));
+        fnArgs.unshift(angular.extend({}, state));
         if (typeof fn === 'string') {
           result = this[fn].apply(this, fnArgs);
         }
@@ -117,7 +122,7 @@
 
       for (var i = 0; i < this.selectors.length; i++) {
         var selector = this.selectors[i];
-        this.__execSelectorHandler(selector);
+        this.__execSelectorHandler(selector, state);
       }
 
       promise.then(function () {
