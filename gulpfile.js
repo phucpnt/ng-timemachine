@@ -35,7 +35,7 @@ function compile(watch) {
           console.error(err);
           this.emit('end');
         })
-        .pipe(source('build.js'))
+        .pipe(source('ng-time-machine.js'))
         .pipe(buffer())
         .pipe(sourcemaps.init({loadMaps: true}))
         .pipe(sourcemaps.write('./'))

@@ -21,10 +21,11 @@
   </h1>
   <div directive-todo></div>
 
+  <!--<div class="row" ng-repeat="todo in tasks | filter:statusFilter track by $index"-->
   <script type="text/ng-template" id="directive-todo.html">
     <div id="todoapp">
 
-      <div class="row" ng-repeat="todo in todos | filter:statusFilter track by $index"
+      <div class="row" ng-repeat="todo in tasks track by $index"
            ng-class="{completed: todo.completed, editing: todo == editedTodo}">
         <div class="col-sm-8 col-sm-offset-2">
           <div class="input-group input-group-lg">
@@ -33,7 +34,7 @@
                   </span>
 
             <form ng-submit="doneEditing(todo)">
-              <input class="edit form-control input-lg" ng-trim="false" ng-model="todo.title"
+              <input class="edit form-control input-lg" ng-trim="false" ng-model="todo.desc"
                      ng-blur="doneEditing(todo)"
                      todo-escape="revertEditing(todo)" todo-focus="todo == editedTodo">
             </form>
