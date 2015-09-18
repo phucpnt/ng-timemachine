@@ -73,7 +73,7 @@ gulp.task('build-ghpages', function () {
 
 gulp.task('push', ['build-ghpages'], function () {
   return gulp.src(['./gh-pages/**/*'])
-      .pipe(ghPages({push: false}));
+      .pipe(ghPages({push: true}));
 });
 
 
