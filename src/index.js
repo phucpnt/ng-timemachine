@@ -6,7 +6,11 @@ var angular = require('angular');
 var cssify = require('cssify');
 var Storage = require('store');
 
+var _extend = angular.extend;
 var app = angular.module('ngTimeMachine', []);
+
+
+
 app.value('tmAppName', '__need_your_app_name_override__');
 app.provider('tmStore', function tmStore() {
 

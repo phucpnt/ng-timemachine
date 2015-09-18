@@ -9,6 +9,7 @@
     [ng-cloak] {
       display: none;
     }
+
     .selected {
       border: 1px solid #ddd;
     }
@@ -16,9 +17,22 @@
 </head>
 <body id="todoappmvc">
 <div class="container">
-  <h1 class="text-center">ngTimeMachine
+  <h1 class="text-center">ngTimeMachine - Work in Progress Todo Example
     <p class="lead">with Bootstrap 3</p>
   </h1>
+  <h3>Please check the floating ngTimeMachine bar at the bottom.</h3>
+
+  <h4>What you can do with the TimeMachine bar:</h4>
+  <ul>
+    <li>Whenever you done something with the todo, you can click the frozen button. The browser would be reload and the
+      application state should be the same as the moment you click the frozen button.
+    </li>
+    <li>
+      You can travel time back and forth, when clicking the time navigation on the right bottom.
+    </li>
+    <li>Enjoy and give me feedback please :)</li>
+  </ul>
+  <p>&nbsp;</p>
   <div directive-todo></div>
 
   <!--<div class="row" ng-repeat="todo in tasks | filter:statusFilter track by $index"-->
