@@ -8,6 +8,7 @@ var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var browserify = require('browserify');
 var watchify = require('watchify');
+var ghPages = require('gulp-gh-pages');
 
 // browserify transformers
 var babel = require('babelify');
@@ -61,6 +62,15 @@ gulp.task('build', function () {
 });
 gulp.task('watch', function () {
   return watch();
+});
+
+gulp.task('deploy', function(){
+
+  gulp.task('deploy', function() {
+    return gulp.src('./dist/**/*')
+        .pipe(ghPages());
+  });
+
 });
 
 gulp.task('default', ['watch']);
