@@ -17,6 +17,8 @@
       'todoCreate',
       'todoRemove',
       'todoComplete',
+      'todoUpdate',
+      'batchUpdate',
       'filter'
     ]);
     Store.defineStore({
@@ -29,11 +31,44 @@
         var foundTask = this.state.tasks.filter(function (item) {
           return item.taskId === taskId;
         })[0];
-        console.log(foundTask);
         if (foundTask) {
           foundTask.completed = completed;
         }
+        return this.trigger(this.state);
+      },
+      onTodoRemove: function (taskId) {
+        var foundIndex = -1;
+        for (var i = 0; i < this.state.tasks.length; i++) {
+          var task = this.state.tasks[i];
+          if (task.taskId === taskId) {
+            foundIndex = i;
+            break;
+          }
+        }
 
+        if (foundIndex > -1) {
+          this.state.tasks.splice(foundIndex, 1);
+        }
+
+        return this.trigger(this.state);
+      },
+
+      onTodoUpdate: function(taskId, taskDesc){
+        var foundTask = this.state.tasks.filter(function(item){
+          return item.taskId === taskId;
+        })[0];
+
+        if(foundTask){
+          foundTask.desc = taskDesc;
+        }
+
+        return this.trigger(this.state);
+      },
+
+      onBatchUpdate: function (field, value) {
+        this.state.tasks.forEach(function (item) {
+          item[field] = value;
+        });
         return this.trigger(this.state);
       },
       onFilter: function (status) {
@@ -65,7 +100,7 @@
       templateUrl: 'directive-todo.html',
       link: function ($scope, $element) {
 
-        $store.register($scope, {tasks: 'tasks', filter: 'filter'}, function (state) {
+        $store.register($scope, {tasks: 'tasks', filter: 'filter', remainingCount: 'remainingCount'}, function (state) {
 
           var filter = {};
           switch (state.filter) {
@@ -79,7 +114,10 @@
 
           return {
             tasks: state.tasks,
-            filter: filter
+            filter: filter,
+            remainingCount: state.tasks.filter(function (item) {
+              return item.completed == false;
+            }).length
           };
         });
 
@@ -105,6 +143,18 @@
               $store.dispatch('filter', 'all');
           }
         });
+
+        $scope.markAll = function (status) {
+          $store.dispatch('batchUpdate', 'completed', status === 'completed' ? true : false);
+        };
+
+        $scope.todoRemove = function (task) {
+          $store.dispatch('todoRemove', task.taskId);
+        };
+
+        $scope.todoEdit = function (todo) {
+          $store.dispatch('todoUpdate', todo.taskId, todo.desc);
+        }
       }
     }
   }]);

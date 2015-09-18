@@ -48,13 +48,13 @@
                     <input class="toggle" type="checkbox" ng-model="todo.completed" ng-click="todoCompleted(todo)">
                   </span>
 
-            <form ng-submit="doneEditing(todo)">
+            <form ng-submit="todoEdit(todo)">
               <input class="edit form-control input-lg" ng-trim="false" ng-model="todo.desc"
-                     ng-blur="doneEditing(todo)"
+                     ng-blur="todoEdit(todo)"
                      todo-escape="revertEditing(todo)" todo-focus="todo == editedTodo">
             </form>
                   <span class="input-group-btn">
-                    <button class="btn btn-default btn-lg destroy" ng-click="removeTodo(todo)"><i
+                    <button class="btn btn-default btn-lg destroy" ng-click="todoRemove(todo)"><i
                         class="glyphicon glyphicon-remove"></i></button>
                   </span>
           </div>
@@ -100,7 +100,7 @@
       <div class="row">
         <div class="col-sm-4 col-sm-offset-2">
 
-          <button class="btn btn-default btn-lg" id="toggle-all" ng-model="allChecked" ng-click="markAll(allChecked)"><i
+          <button class="btn btn-default btn-lg" id="toggle-all" ng-click="markAll('completed')"><i
               class="glyphicon glyphicon-ok"></i></button>
           Mark all as complete
         </div>
