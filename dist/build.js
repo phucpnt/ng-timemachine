@@ -702,7 +702,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
           Actions[name].add(this[fnName], this);
         }
       }
-      console.log('TEST CONSTRUCTOR');
     }
 
     _createClass(Store, [{
@@ -1016,7 +1015,6 @@ app.provider('tmStore', function tmStore() {
   };
 
   this.$get = ['$q', '$http', function storeFactory($q, $http) {
-    console.log(StoreClass);
     return new StoreClass(Actions, $q, $http, initialState);
   }];
 });
@@ -1025,8 +1023,6 @@ app.directive('timeControls', ['tmStore', require('./tm-controls')]);
 
 app.run(['tmAppName', '$compile', '$rootElement', '$rootScope', 'tmStore', function (appName, $compile, $rootElement, $rootScope, $store) {
   var $element = angular.element('<div time-controls />').attr('data-app-name', appName);
-  //var $store = AppStore.getInstance();
-  console.log($store);
   $store.setPersistStorage(Storage);
   var frozenIndex = Storage.get(appName + '.__time_machine_frozen');
   var histories = Storage.get(appName + '.__time_machine_histories');
@@ -1078,17 +1074,13 @@ module.exports = '<style>\n  .in-frozen-mode {\n    background-color: #2574A9;\n
       }
 
       $scope.histories = $store.getPersistStorage().get(getStorageKey('__time_machine_histories')) || [];
-      $store.register(function (state) {
-        return state;
-      }, function (state) {
+      $store.register($scope, 'timeline_index', function (state) {
         if (_isUndefined(state.__time_machine)) {
           state.__time_machine = $scope.histories.length;
           state.loading_state = _extend({}, state.loading_state); // not deep clone
-          $scope.timeline_index = $scope.histories.length;
           $scope.histories.push(state);
-        } else {
-          $scope.timeline_index = state.__time_machine;
         }
+        return state.__time_machine;
       });
 
       $scope.go = function (step) {
@@ -1165,8 +1157,6 @@ Store.createClass = function (classDefs) {
   ChildClass.__super__ = ParentClass.prototype;
 
   ChildClass.createClass = ParentClass.createClass;
-
-  console.log(ChildClass);
 
   return ChildClass;
 };

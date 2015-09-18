@@ -18,18 +18,13 @@
       }
 
       $scope.histories = $store.getPersistStorage().get(getStorageKey('__time_machine_histories')) || [];
-      $store.register(function (state) {
-        return state;
-      }, function (state) {
+      $store.register($scope, 'timeline_index', function (state) {
         if (_isUndefined(state.__time_machine)) {
           state.__time_machine = $scope.histories.length;
           state.loading_state = _extend({}, state.loading_state); // not deep clone
-          $scope.timeline_index = $scope.histories.length;
           $scope.histories.push(state);
         }
-        else {
-          $scope.timeline_index = state.__time_machine;
-        }
+        return state.__time_machine;
       });
 
       $scope.go = function (step) {

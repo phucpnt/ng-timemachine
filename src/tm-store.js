@@ -29,8 +29,6 @@ Store.createClass = function (classDefs, ParentClass = null) {
 
   ChildClass.createClass = ParentClass.createClass;
 
-  console.log(ChildClass);
-
 
   return ChildClass;
 

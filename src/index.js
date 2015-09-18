@@ -26,7 +26,6 @@ app.provider('tmStore', function tmStore() {
   };
 
   this.$get = ['$q', '$http', function storeFactory($q, $http) {
-    console.log(StoreClass);
     return new StoreClass(Actions, $q, $http, initialState);
   }]
 
@@ -37,8 +36,6 @@ app.directive('timeControls', ['tmStore', require('./tm-controls')]);
 app.run(['tmAppName', '$compile', '$rootElement', '$rootScope', 'tmStore',
   function (appName, $compile, $rootElement, $rootScope, $store) {
     var $element = angular.element('<div time-controls />').attr('data-app-name', appName);
-    //var $store = AppStore.getInstance();
-    console.log($store);
     $store.setPersistStorage(Storage);
     var frozenIndex = Storage.get(appName + '.__time_machine_frozen');
     var histories = Storage.get(appName + '.__time_machine_histories');

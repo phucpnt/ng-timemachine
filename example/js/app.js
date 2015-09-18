@@ -22,10 +22,12 @@
 
   }]);
 
-  app.directive('directiveTodo', ['tmStore', function($store){
+  app.directive('directiveTodo', ['tmStore', function ($store) {
+    return {
+      link: function () {
 
-
-
+      }
+    }
   }]);
 
   angular.bootstrap(document.getElementById('todoappmvc'), ['todomvc']);
