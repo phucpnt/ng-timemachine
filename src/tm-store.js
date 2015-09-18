@@ -43,6 +43,7 @@ Store.makeActions = function (actionNames) {
   actionNames.forEach((name) => {
     Actions[name] = new Signal;
   });
+  return Actions;
 };
 
 Store.getInstance = function () {

@@ -86,7 +86,7 @@
         else {
           fn = handleDef;
         }
-        fnArgs.unshift(this.state);
+        fnArgs.unshift(angular.extend({}, this.state));
         if (typeof fn === 'string') {
           result = this[fn].apply(this, fnArgs);
         }

@@ -761,7 +761,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
           } else {
             fn = handleDef;
           }
-          fnArgs.unshift(this.state);
+          fnArgs.unshift(angular.extend({}, this.state));
           if (typeof fn === 'string') {
             result = this[fn].apply(this, fnArgs);
           } else {
@@ -1172,6 +1172,7 @@ Store.makeActions = function (actionNames) {
   actionNames.forEach(function (name) {
     Actions[name] = new Signal();
   });
+  return Actions;
 };
 
 Store.getInstance = function () {

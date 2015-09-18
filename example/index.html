@@ -4,11 +4,15 @@
   <meta charset="utf-8">
   <title>AngularJS With TimeMachine • TodoMVC</title>
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-  <link rel="stylesheet" href="../node_modules/todomvc-common/base.css">
-  <link rel="stylesheet" href="../node_modules/todomvc-app-css/index.css">
-  <style>[ng-cloak] {
-    display: none;
-  }</style>
+
+  <style>
+    [ng-cloak] {
+      display: none;
+    }
+    .selected {
+      border: 1px solid #ddd;
+    }
+  </style>
 </head>
 <body id="todoappmvc">
 <div class="container">
@@ -18,7 +22,7 @@
   <div directive-todo></div>
 
   <script type="text/ng-template" id="directive-todo.html">
-    <div id="todoapp" directive-todo>
+    <div id="todoapp">
 
       <div class="row" ng-repeat="todo in todos | filter:statusFilter track by $index"
            ng-class="{completed: todo.completed, editing: todo == editedTodo}">
@@ -50,7 +54,7 @@
         <div class="col-sm-8 col-sm-offset-2">
           <div class="input-group input-group-lg">
                   <span class="input-group-btn">
-                    <button class="btn btn-success btn-lg"><i class="fa fa-chevron-right"></i></button>
+                    <button class="btn btn-success btn-lg"><i class="glyphicon glyphicon-chevron-right"></i></button>
                   </span>
 
             <form id="todo-form" ng-submit="addTodo()">
@@ -81,7 +85,7 @@
         <div class="col-sm-4 col-sm-offset-2">
 
           <button class="btn btn-default btn-lg" id="toggle-all" ng-model="allChecked" ng-click="markAll(allChecked)"><i
-              class="fa fa-check"></i></button>
+              class="glyphicon glyphicon-ok"></i></button>
           Mark all as complete
         </div>
         <div class="col-sm-4 text-right">
