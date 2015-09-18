@@ -35,12 +35,16 @@
         }
 
         return this.trigger(this.state);
+      },
+      onFilter: function (status) {
+        this.state.filter = status;
+        return this.trigger(this.state);
       }
     });
 
   }]);
 
-  app.directive('directiveTodo', ['tmStore', function ($store) {
+  app.directive('directiveTodo', ['tmStore', '$location', function ($store, $location) {
 
     function logDispatch() {
       return {
@@ -62,9 +66,20 @@
       link: function ($scope, $element) {
 
         $store.register($scope, {tasks: 'tasks', filter: 'filter'}, function (state) {
+
+          var filter = {};
+          switch (state.filter) {
+            case 'active':
+              filter.completed = false;
+              break;
+            case 'completed':
+              filter.completed = true;
+              break;
+          }
+
           return {
             tasks: state.tasks,
-            filter: state.filter
+            filter: filter
           };
         });
 
@@ -76,6 +91,20 @@
           $store.dispatch('todoComplete', task.taskId, task.completed);
         };
 
+        $scope.location = $location;
+
+        $scope.$watch('location.path()', function (path) {
+          switch (path) {
+            case '/active':
+              $store.dispatch('filter', 'active');
+              break;
+            case '/completed':
+              $store.dispatch('filter', 'completed');
+              break;
+            case '/':
+              $store.dispatch('filter', 'all');
+          }
+        });
       }
     }
   }]);
