@@ -7,12 +7,11 @@
 
   app.value('tmAppName', 'todomvc-tm');
   app.config(['tmStoreProvider', function (Store) {
-    var TODO_COMPLETE = 1,
-        TODO_UNCOMPLETED = 2;
 
     Store.initialState({
       tasks: [],
-      filter: 'all'
+      filter: 'all',
+      currentTaskId: 0
     });
     Store.defineActions([
       'todoCreate',
@@ -22,8 +21,20 @@
     ]);
     Store.defineStore({
       onTodoCreate: function (taskDesc) {
-        this.state.tasks.push({desc: taskDesc, status: TODO_UNCOMPLETED});
-        this.trigger(this.state);
+        this.state.currentTaskId++;
+        this.state.tasks.push({desc: taskDesc, completed: false, taskId: this.state.currentTaskId});
+        return this.trigger(this.state);
+      },
+      onTodoComplete: function (taskId, completed) {
+        var foundTask = this.state.tasks.filter(function (item) {
+          return item.taskId === taskId;
+        })[0];
+        console.log(foundTask);
+        if (foundTask) {
+          foundTask.completed = completed;
+        }
+
+        return this.trigger(this.state);
       }
     });
 
@@ -42,6 +53,7 @@
         }
       };
     }
+
     $store.mixIn(logDispatch);
 
 
@@ -49,15 +61,19 @@
       templateUrl: 'directive-todo.html',
       link: function ($scope, $element) {
 
-        $store.register($scope, {tasks: 'tasks', filter: 'filter'}, function(state){
+        $store.register($scope, {tasks: 'tasks', filter: 'filter'}, function (state) {
           return {
             tasks: state.tasks,
             filter: state.filter
           };
         });
 
-        $scope.addTodo = function () {
+        $scope.todoAdd = function () {
           $store.dispatch('todoCreate', $scope.newTodo);
+        };
+
+        $scope.todoCompleted = function (task) {
+          $store.dispatch('todoComplete', task.taskId, task.completed);
         };
 
       }

@@ -58,7 +58,7 @@
                     <button class="btn btn-success btn-lg"><i class="glyphicon glyphicon-chevron-right"></i></button>
                   </span>
 
-            <form id="todo-form" ng-submit="addTodo()">
+            <form id="todo-form" ng-submit="todoAdd()">
               <input class="form-control input-lg" id="new-todo" placeholder="What needs to be done?" ng-model="newTodo"
                      autofocus="">
             </form>
@@ -108,7 +108,7 @@
                   <ng-pluralize count="remainingCount" when="{ one: 'item left', other: 'items left' }"></ng-pluralize>
                 </span>
         </div>
-        <div class="col-sm-4 text-center" ng-show="todos.length" ng-cloak="">
+        <div class="col-sm-4 text-center" ng-show="tasks.length" ng-cloak="">
           <ul class="list-inline" id="filters">
             <li>
               <a class="btn btn-sm" ng-class="{selected: location.path() == '/'} " href="#/">All</a>
