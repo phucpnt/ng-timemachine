@@ -19,6 +19,9 @@ need to develop/update/fix somethings on screen (S). Then after you update your 
 behaviors to get to see if the screen (S) works correctly.
 * Is that story sound familiar to you?
 
+## LICENSE
+
+Apache 2.0
 #### How this app structure solve the issue above:
 * With this app structure including the ngTimeMachine controls, you can easily frozen the timeline. Then you update your
 APP in the background and refresh browser. The APP would showing you exactly the same state you freeze the time.
