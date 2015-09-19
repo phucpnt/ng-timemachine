@@ -17,7 +17,7 @@ screen (S)
 waiting request to server -> then see if the screen (S) display correctly. If yes, it is wonderful. But most of the time
 you need to develop/update/fix somethings on screen (S). Then after you update your APP you need to repeat those kind of
 behaviors to get to see if the screen (S) works correctly.
-* Is that story sound familiar to you?
+* Is that story sound familiar to you? ;-)
 
 #### How this app structure solve the issue above:
 * With this app structure including the ngTimeMachine controls, you can easily frozen the timeline. Then you update your

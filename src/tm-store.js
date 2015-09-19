@@ -3,7 +3,7 @@
  */
 
 var Store = {};
-var ClassStore = require('./class-store');
+var ClassStore = require('./ng-store');
 var Signal = require('signals');
 var instance = null;
 
