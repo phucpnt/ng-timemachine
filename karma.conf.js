@@ -5,7 +5,7 @@ module.exports = function (config) {
   config.set({
 
     // base path that will be used to resolve all patterns (eg. files, exclude)
-    basePath: '',
+    basePath: './',
 
 
     // frameworks to use
@@ -21,8 +21,8 @@ module.exports = function (config) {
     // list of files / patterns to load in the browser
     files: [
       'node_modules/angular/angular.js',
-      'node_module/angular-mocks/angular-mocks.js',
-      'src/*.(js|html)',
+      'node_modules/angular-mocks/angular-mocks.js',
+      'src/**/*',
       'test/**/*Spec.js'
     ],
 
@@ -34,7 +34,7 @@ module.exports = function (config) {
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
-      'src/**/*.(js|html)': ['browserify'],
+      'src/**/*': ['browserify'],
       'test/**/*Spec.js': ['browserify']
     },
 

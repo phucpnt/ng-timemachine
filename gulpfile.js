@@ -10,6 +10,7 @@ var browserify = require('browserify');
 var watchify = require('watchify');
 var ghPages = require('gulp-gh-pages');
 var copy = require('gulp-copy');
+var Server = require('karma').Server;
 
 // browserify transformers
 var babel = require('babelify');
@@ -63,6 +64,19 @@ gulp.task('build', function () {
 });
 gulp.task('watch', function () {
   return watch();
+});
+gulp.task('test', function(done){
+  new Server({
+    configFile: __dirname + '/karma.conf.js',
+    singleRun: true
+  }, done).start();
+});
+gulp.task('test-dev', function(done){
+  new Server({
+    configFile: __dirname + '/karma.conf.js',
+    singleRun: false,
+    autoWatch: true
+  }, done).start();
 });
 
 
