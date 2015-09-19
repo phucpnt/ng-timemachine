@@ -13,7 +13,7 @@ don't have to reproduce amount of behaviors to come to the state they need to de
 Save time and eliminate boring repeat jobs right?.
 
 
-LICENSE
-==================
-Apache
+## LICENSE
+
+Apache 2.0
 
