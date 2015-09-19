@@ -14,8 +14,8 @@ from SERVER (REST api for example).
 the APP send request to SERVER base on user selections. After request successfully return, the APP would show user
 screen (S)
 * Every time you need to develop or fix or update screen (S) you need to repeat the select (A) -> select (B) -> then
-waiting request to server -> then see if the screen (S) display correctly. If yes, it is wonderful. But mostly you
-need to develop/update/fix somethings on screen (S). Then after you update your APP you need to repeat those kind of
+waiting request to server -> then see if the screen (S) display correctly. If yes, it is wonderful. But most of the time
+you need to develop/update/fix somethings on screen (S). Then after you update your APP you need to repeat those kind of
 behaviors to get to see if the screen (S) works correctly.
 * Is that story sound familiar to you?
 
