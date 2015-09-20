@@ -139,9 +139,10 @@
       this.__trigger_depth = this.__trigger_depth ? this.__trigger_depth + 1 : 1;
       console.log('%c >> flow start', 'background: yellow', this.__trigger_depth);
 
-      if (typeof promise.then === 'function') {
+      if (promise && typeof promise.then === 'function') {
         return promise;
       }
+
       return this.$q((resolve, reject) => {
         resolve(promise);
       })

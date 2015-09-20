@@ -14,13 +14,14 @@ describe('ngTimeMachine module', () => {
     });
   }));
 
-  var $q, $http, $scope, setupTimeControls;
+  var $q, $http, $scope, $timeout, setupTimeControls;
 
-  beforeEach(angular.mock.inject((_$q_, _$http_, _setupTimeControls_, _$rootScope_) => {
+  beforeEach(angular.mock.inject((_$q_, _$http_, _setupTimeControls_, _$rootScope_, _$timeout_) => {
     // The injector unwraps the underscores (_) from around the parameter names when matching
     $q = _$q_;
     $http = _$http_;
     $scope = _$rootScope_;
+    $timeout = _$timeout_;
     setupTimeControls = _setupTimeControls_;
     //var tmStore = require('../src/tm-store');
   }));
@@ -62,7 +63,12 @@ describe('ngTimeMachine module', () => {
 
     beforeEach(() => {
 
-      Actions = Store.makeActions(['foo', 'bar', 'baz', 'qux']);
+      Actions = Store.makeActions(['foo', 'bar', 'baz', 'qux', 'selectA', 'selectB', 'combineSelectAB']);
+      /**
+       * TODO:
+       * 1) unit test for async request
+       * 2) unit test for loading state on request
+       */
       StoreClass = Store.define({
         onFoo: jasmine.createSpy(function () {
           this.trigger(this.state);
@@ -74,7 +80,30 @@ describe('ngTimeMachine module', () => {
 
         onBaz: function () {
           this.trigger(this.state);
+        },
+
+        onSelectA: function () {
+          this.state.clickA = true;
+          this.trigger(this.state);
+        },
+        onSelectB: function () {
+          this.state.clickB = true;
+          this.trigger(this.state);
+        },
+
+        onCombineSelectAB: function () {
+          return this.flowStart()
+              .then(() => {
+                return this.onSelectA();
+              })
+              .then(() => {
+                return this.onSelectB();
+              })
+              .then(() => {
+                this.flowEnd(this.state);
+              });
         }
+
       });
     });
 
@@ -124,7 +153,27 @@ describe('ngTimeMachine module', () => {
 
       expect($scope.scopeField1).toEqual(1);
       expect($scope.scopeField2).toEqual(true);
-    })
+    });
+
+    it('allow combine actions and trigger store change only once', (done) => {
+
+      var storeInstance = new StoreClass(Actions, $q, $http);
+      storeInstance.register($scope, {selectA: 'selectA', selectB: 'selectB'}, function (state) {
+        return {
+          selectA: state.selectA,
+          selectB: state.selectB
+        };
+      });
+
+      storeInstance.dispatch('combineSelectAB');
+
+      $timeout(function(){
+        expect($scope.selectA).toBe(true);
+        expect($scope.selectB).toBe(true);
+        done();
+      }, 10);
+
+    });
 
 
   })
