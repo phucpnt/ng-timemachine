@@ -27,7 +27,7 @@ Store.createClass = function (classDefs, ParentClass = null) {
 
   ChildClass.__super__ = ParentClass.prototype;
 
-  ChildClass.createClass = ParentClass.createClass;
+  ChildClass.createClass = Store.createClass;
 
 
   return ChildClass;
