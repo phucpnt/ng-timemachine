@@ -210,7 +210,7 @@
 
       if (state) {
         var loadingDeps = this.__getLoadingStateDeps()[name];
-        loadingDeps.forEach(loadingDeps, (name) => {
+        _forEach(loadingDeps, (name) => {
           this.state.loading_state.push(name);
         });
         this.trigger(this.state, true);
@@ -222,6 +222,7 @@
     }
 
     __request(label, url, params, method = 'JSONP', opts = {}) {
+      console.log(label);
       this.__markLoading(label, true);
       var defer = this.$q.defer();
 

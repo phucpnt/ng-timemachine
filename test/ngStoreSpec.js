@@ -14,14 +14,15 @@ describe('ngTimeMachine module', () => {
     });
   }));
 
-  var $q, $http, $scope, $timeout, setupTimeControls;
+  var $q, $http, $scope, $timeout, $httpBackend, setupTimeControls;
 
-  beforeEach(angular.mock.inject((_$q_, _$http_, _setupTimeControls_, _$rootScope_, _$timeout_) => {
+  beforeEach(angular.mock.inject((_$q_, _$http_, _setupTimeControls_, _$rootScope_, _$timeout_, _$httpBackend_) => {
     // The injector unwraps the underscores (_) from around the parameter names when matching
     $q = _$q_;
     $http = _$http_;
     $scope = _$rootScope_;
     $timeout = _$timeout_;
+    $httpBackend = _$httpBackend_;
     setupTimeControls = _setupTimeControls_;
     //var tmStore = require('../src/tm-store');
   }));
@@ -63,7 +64,16 @@ describe('ngTimeMachine module', () => {
 
     beforeEach(() => {
 
-      Actions = Store.makeActions(['foo', 'bar', 'baz', 'qux', 'selectA', 'selectB', 'combineSelectAB']);
+      Actions = Store.makeActions([
+        'foo',
+        'bar',
+        'baz',
+        'qux',
+        'selectA',
+        'selectB',
+        'combineSelectAB',
+        'asyncRequest'
+      ]);
       /**
        * TODO:
        * 1) unit test for async request
@@ -83,11 +93,11 @@ describe('ngTimeMachine module', () => {
         },
 
         onSelectA: function () {
-          this.state.clickA = true;
+          this.state.selectA = true;
           this.trigger(this.state);
         },
         onSelectB: function () {
-          this.state.clickB = true;
+          this.state.selectB = true;
           this.trigger(this.state);
         },
 
@@ -98,6 +108,17 @@ describe('ngTimeMachine module', () => {
               })
               .then(() => {
                 return this.onSelectB();
+              })
+              .then(() => {
+                this.flowEnd(this.state);
+              });
+        },
+
+        onAsyncRequest: function () {
+          return this
+              .flowStart(this.__request('should_show_loading', '/server-api'))
+              .then(() => {
+                this.state.server_result = 'loaded';
               })
               .then(() => {
                 this.flowEnd(this.state);
@@ -167,11 +188,44 @@ describe('ngTimeMachine module', () => {
 
       storeInstance.dispatch('combineSelectAB');
 
-      $timeout(function(){
+      $timeout(() => {
         expect($scope.selectA).toBe(true);
         expect($scope.selectB).toBe(true);
-        done();
+        done()
       }, 10);
+      $timeout.flush();
+
+    });
+
+    it('support ajax with loading state', () => {
+      var storeInstance = new StoreClass(Actions, $q, $http);
+      storeInstance.register($scope, {
+        should_show_loading: 'should_show_loading',
+        server_result: 'server_result'
+      }, function (state) {
+        return {
+          should_show_loading: state.loading_state.indexOf('should_show_loading') > -1,
+          server_result: state.server_result
+        };
+      });
+
+      $httpBackend.when('JSONP', '/server-api').respond({status: 'ok'});
+
+      $httpBackend.expectJSONP('/server-api');
+      storeInstance.dispatch('asyncRequest');
+
+      $timeout(() => {
+        expect($scope.should_show_loading).toBe(true);
+      }, 1);
+      $timeout.flush();
+
+      $httpBackend.flush();
+
+      $timeout(() => {
+        expect($scope.server_result).toEqual('loaded');
+      }, 1);
+      $timeout.flush();
+
 
     });
 
