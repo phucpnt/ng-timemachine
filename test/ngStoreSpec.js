@@ -14,12 +14,13 @@ describe('ngTimeMachine module', () => {
     });
   }));
 
-  var $q, $http, setupTimeControls;
+  var $q, $http, $scope, setupTimeControls;
 
-  beforeEach(angular.mock.inject((_$q_, _$http_, _setupTimeControls_) => {
+  beforeEach(angular.mock.inject((_$q_, _$http_, _setupTimeControls_, _$rootScope_) => {
     // The injector unwraps the underscores (_) from around the parameter names when matching
     $q = _$q_;
     $http = _$http_;
+    $scope = _$rootScope_;
     setupTimeControls = _setupTimeControls_;
     //var tmStore = require('../src/tm-store');
   }));
@@ -54,8 +55,7 @@ describe('ngTimeMachine module', () => {
   });
 
   describe('ngStore', () => {
-    var Actions, StoreClass;
-    var Store;
+    var Store, Actions, StoreClass;
     beforeEach(() => {
       Store = require('../src/tm-store');
     });
@@ -64,13 +64,16 @@ describe('ngTimeMachine module', () => {
 
       Actions = Store.makeActions(['foo', 'bar', 'baz', 'qux']);
       StoreClass = Store.define({
-        onFoo: function () {
-        },
+        onFoo: jasmine.createSpy(function () {
+          this.trigger(this.state);
+        }),
 
         onBar: function () {
+          this.trigger(this.state);
         },
 
         onBaz: function () {
+          this.trigger(this.state);
         }
       });
     });
@@ -81,6 +84,48 @@ describe('ngTimeMachine module', () => {
       expect(instance.onBar).toBeDefined();
       expect(instance.onBaz).toBeDefined();
     });
+
+    it('allow $scope register', () => {
+      var storeInstance = new StoreClass(Actions, $q, $http);
+      var selector = jasmine.createSpy();
+      storeInstance.register($scope, 'result', selector);
+      expect(selector).toHaveBeenCalled();
+    });
+
+    it('dispatch request correctly', () => {
+      var storeInstance = new StoreClass(Actions, $q, $http);
+      storeInstance.dispatch('foo', 1, 2, 3);
+      expect(storeInstance.onFoo).toHaveBeenCalled();
+      expect(storeInstance.onFoo).toHaveBeenCalledWith(1, 2, 3);
+
+    });
+
+    it('update the $scope correctly when state change', () => {
+      var i = 0;
+      var storeInstance = new StoreClass(Actions, $q, $http);
+      storeInstance.register($scope, 'result', function (state) {
+        return ++i;
+      });
+      expect($scope.result).toEqual(1);
+
+      storeInstance.dispatch('bar', 1, 2, 3);
+      expect($scope.result).toEqual(2);
+    });
+
+    it('allow assign multiple fields on $scope register', () => {
+      var i = 0;
+      var storeInstance = new StoreClass(Actions, $q, $http);
+      storeInstance.register($scope, {resultField1: 'scopeField1', resultField2: 'scopeField2'}, function (state) {
+        return {
+          resultField1: ++i,
+          resultField2: true
+        };
+      });
+
+      expect($scope.scopeField1).toEqual(1);
+      expect($scope.scopeField2).toEqual(true);
+    })
+
 
   })
 
