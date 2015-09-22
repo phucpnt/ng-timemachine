@@ -3,4 +3,4 @@
 * [Application Setup](app/README.md)
 * Links
   * [Source code](https://github.com/phucpnt/ng-timemachine)
-  * [Example - TODO](example/index.html)
+  * [Example - TODO](https://phucpnt.github.io/ng-timemachine/example/index.html)

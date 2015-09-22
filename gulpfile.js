@@ -99,7 +99,8 @@ gulp.task('gitbook', function (cb) {
       "output": "build/"
     }
   });
-  book.parse()
+
+  return book.parse()
       .then(function () {
         return book.generate('website');
       })
