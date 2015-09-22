@@ -3,11 +3,11 @@
 ## What is it?
 
 The timeline machine is structure for easy build angular application.
-It is heavily inspired by FLUX architecture.
+It is heavily inspired by ReactJS and FLUX architecture.
 
 With that structure you can easy manipulate the state/timeline of the application.
 
-## Motivation
+## Simple use case
 
 **Let visualize the following example:**
 

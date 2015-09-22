@@ -10,7 +10,7 @@ interesting the way ngRepeat works comparing to BackboneJS collections :-).
 And how the AngularJS APP **respond to data changes** in easy and appealing way compare to BackboneJS.
 At the heart of AngularJS APP, **Directive** is an important point to keep the APP setup in module way.
 
-Soon I see that we can totally reduce the use of *Controller* in flavor of **Directive**.
+Soon I see that we can totally reduce the use of *Controller* in flavor of more use of **Directive**.
 
 When switching from BackboneJS to AngularJS, there is one minor issue for me is Backbone treat data more strict than
 AngularJS. I also think it is the flexibility of AngularJS.

@@ -18,6 +18,9 @@ var bShim = require('browserify-shim');
 var cssify = require('cssify');
 var p = require('partialify');
 
+// documents, gitbook build
+var gitbook = require('gitbook');
+
 function compile(watch) {
 
   var b = browserify('./src/index.js',
@@ -65,30 +68,48 @@ gulp.task('build', function () {
 gulp.task('watch', function () {
   return watch();
 });
-gulp.task('test', function(done){
+gulp.task('test', function (done) {
   new Server({
     configFile: __dirname + '/karma.conf.js',
     singleRun: true
   }, done).start();
 });
-gulp.task('test-dev', function(done){
+gulp.task('test-dev', function (done) {
   new Server({
     configFile: __dirname + '/karma.conf.js',
     singleRun: false,
     autoWatch: true
   }, done).start();
 });
+gulp.task('default', ['watch']);
 
 
+/**
+ * Build the docs and push to github pages
+ **/
 gulp.task('build-ghpages', function () {
-  return gulp.src(['./dist/**/*', './example/**/*'])
-      .pipe(copy('./gh-pages'))
+  return gulp.src(['./dist/**/*'])
+      .pipe(copy('./build'))
 });
 
-gulp.task('push', ['build-ghpages'], function () {
-  return gulp.src(['./gh-pages/**/*'])
+
+gulp.task('gitbook', function (cb) {
+  var book = new gitbook.Book('docs/', {
+    "config": {
+      "output": "build/"
+    }
+  });
+  book.parse()
+      .then(function () {
+        return book.generate('website');
+      })
+      .then(function () {
+        return gulp.src(['./dist/**/*'])
+            .pipe(copy('./build'))
+      });
+});
+
+gulp.task('push-pages', ['gitbook'], function () {
+  return gulp.src(['./build/**/*'])
       .pipe(ghPages({push: true}));
 });
-
-
-gulp.task('default', ['watch']);
