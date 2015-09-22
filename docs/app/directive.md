@@ -34,7 +34,7 @@ app.directive('SimpleDirective', ['tmStore', function(store){
 }]);
 ```
 
-**Alternative forms of store.register**
+**Alternative forms of `store.register`**
 
 ```javascript
 
@@ -54,15 +54,15 @@ store.register($scope, 'scopefield', [data..., 'filterABC']);
 
 ### Basic requirements:
 
-* 1 **Directive** have 1 *register* to receive data updated from the store.
-* **Directive** can dispatch multiple event to the **Store** to update the data by starting unit updates or flow of
+* 1 `Directive` have 1 `register` to receive data updated from the store.
+* `Directive` can dispatch many events to the `Store` to update the data by starting unit updates or flow of
  multiple updates in the Store.
 * Things related to presentation like: animation, stylist etc... would stay in the directive.
 
 ### Why follow that structure?
 
-* Should it be simple if the directive only getting the data from the store. Whatever they do with the data would __not
-effect data inside the store__.
+* Should it be simple if the directive only getting the data from the store. Whatever they do with the data would _not
+effect data inside the store_.
 
 * When passing data to AngularJS *$scope* to produce some presentation (ngRepeat, display value etc), if data is an object
 you would see the extra field **$$hashKey** has been appended into the object. Imagine you need to store the whole data
