@@ -2,3 +2,4 @@
 .idea
 .publish
 node_modules
+build
