@@ -1,0 +1,1 @@
+# Directive store register signature
