@@ -65,7 +65,7 @@ store.register($scope, 'scopefield', [data..., 'filterABC']);
 effect data inside the store_.
 
 * When passing data to AngularJS *$scope* to produce some presentation (ngRepeat, display value etc), if data is an object
-you would see the extra field **$$hashKey** has been appended into the object. Imagine you need to store the whole data
+you would see the extra field **$$hashKey** has been probably appended into the object. Imagine you need to store the whole data
 as the json encoded string, the extra **$hashKey** could be trash field for your database.
 
 * It reduce the complexity of data passing inside the whole application: Different Directives can use the same object to

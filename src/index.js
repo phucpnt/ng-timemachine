@@ -28,8 +28,22 @@ app.provider('tmStore', function tmStore() {
     initialState = state;
   };
 
-  this.$get = ['$q', '$http', function storeFactory($q, $http) {
-    return new StoreClass(Actions, $q, $http, initialState);
+  this.$get = ['$q', '$http', '$timeout', function storeFactory($q, $http, $timeout) {
+    var storeInstance = new StoreClass(Actions, $q, $http, initialState);
+
+    storeInstance.mixIn(function makeSureScopeDigestWillBeTrigger() {
+      return {
+        trigger: function (next) {
+          return (state) => {
+            $timeout(() => {
+              next.call(this, state);
+            });
+          };
+        }
+      };
+    });
+
+    return storeInstance;
   }]
 
 });
@@ -67,7 +81,7 @@ app.service('setupTimeControls', ['tmAppName', '$compile', '$rootElement', '$roo
 
   }]);
 
-app.run(['setupTimeControls', function(setupTimeControls){
+app.run(['setupTimeControls', function (setupTimeControls) {
   setupTimeControls.start();
 }]);
 

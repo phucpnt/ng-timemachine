@@ -117,22 +117,12 @@
         return;
       }
 
-      var deferTrigger = this.$q.defer();
-      var promise = deferTrigger.promise;
-
       for (var i = 0; i < this.selectors.length; i++) {
         var selector = this.selectors[i];
         this.__execSelectorHandler(selector, state);
       }
 
-      promise.then(function () {
-        console.log('%c ============ <<<< CURRENT STATE >>> ========= ', 'background: blue; color: white',
-            state,
-            '======================================');
-      });
-
-      deferTrigger.resolve(true);
-      return promise;
+      return true;
     }
 
     flowStart(promise) {
