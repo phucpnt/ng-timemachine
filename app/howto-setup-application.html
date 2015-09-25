@@ -5,9 +5,9 @@
         
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-        <title>Introduction | Introduction</title>
+        <title>Simple setup | Introduction</title>
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="The timeline machine is structure for easy build angular application.It is heavily inspired by ReactJS and FLUX architecture.">
+        <meta name="description" content="">
         <meta name="generator" content="GitBook 2.4.1">
         
         
@@ -15,13 +15,13 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black">
-        <link rel="apple-touch-icon-precomposed" sizes="152x152" href="gitbook/images/apple-touch-icon-precomposed-152.png">
-        <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
+        <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+        <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
         
-    <link rel="stylesheet" href="gitbook/style.css">
+    <link rel="stylesheet" href="../gitbook/style.css">
     
         
-        <link rel="stylesheet" href="gitbook/plugins/gitbook-plugin-highlight/website.css">
+        <link rel="stylesheet" href="../gitbook/plugins/gitbook-plugin-highlight/website.css">
         
     
     
@@ -29,8 +29,8 @@
         
     
     
-    <link rel="next" href="./app/index.html" />
     
+    <link rel="prev" href="../app/directive.html" />
     
 
         
@@ -38,7 +38,7 @@
     <body>
         
         
-    <div class="book" data-level="0" data-basepath="." data-revision="Sat Sep 26 2015 01:42:46 GMT+0700 (SE Asia Standard Time)">
+    <div class="book" data-level="1.2" data-basepath=".." data-revision="Sat Sep 26 2015 01:42:46 GMT+0700 (SE Asia Standard Time)">
     
 
 <div class="book-summary">
@@ -56,10 +56,10 @@
 
             
     
-        <li class="chapter active" data-level="0" data-path="index.html">
+        <li class="chapter " data-level="0" data-path="index.html">
             
                 
-                    <a href="./index.html">
+                    <a href="../index.html">
                 
                         <i class="fa fa-check"></i>
                         
@@ -72,7 +72,7 @@
         <li class="chapter " data-level="1" data-path="app/index.html">
             
                 
-                    <a href="./app/index.html">
+                    <a href="../app/index.html">
                 
                         <i class="fa fa-check"></i>
                         
@@ -88,7 +88,7 @@
         <li class="chapter " data-level="1.1" data-path="app/directive.html">
             
                 
-                    <a href="./app/directive.html">
+                    <a href="../app/directive.html">
                 
                         <i class="fa fa-check"></i>
                         
@@ -100,10 +100,10 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2" data-path="app/howto-setup-application.html">
+        <li class="chapter active" data-level="1.2" data-path="app/howto-setup-application.html">
             
                 
-                    <a href="./app/howto-setup-application.html">
+                    <a href="../app/howto-setup-application.html">
                 
                         <i class="fa fa-check"></i>
                         
@@ -259,7 +259,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="./" >Introduction</a>
+        <a href="../" >Introduction</a>
     </h1>
 </div>
 
@@ -269,41 +269,76 @@
                 
                     <section class="normal" id="section-">
                     
-                        <h1 id="introduction">Introduction</h1>
-<h2 id="what-is-it">What is it?</h2>
-<p>The timeline machine is structure for easy build angular application.
-It is heavily inspired by ReactJS and FLUX architecture.</p>
-<p>With that structure you can easy manipulate the state/timeline of the application.</p>
-<h2 id="simple-use-case">Simple use case</h2>
-<p><strong>Let visualize the following example:</strong></p>
-<ul>
-<li>You are developing an angular APP. You are in the middle of implement a function which require getting data
-from SERVER (REST api for example).</li>
-<li>To get to the point your APP firing request to SERVER, in the APP, user need to select (A), then select (B) then
-the APP send request to SERVER base on user selections. After request successfully return, the APP would show user
-screen (S)</li>
-<li>Every time you need to develop or fix or update screen (S) you need to repeat the select (A) -&gt; select (B) -&gt; then
-waiting request to server -&gt; then see if the screen (S) display correctly. If yes, it is wonderful. But most of the time
-you need to develop/update/fix somethings on screen (S). Then after you update your APP you need to repeat those kind of
-behaviors to get to see if the screen (S) works correctly.</li>
-<li>Is that story sound familiar to you? ;-)</li>
-</ul>
-<p><strong>How this app structure solve the issue above:</strong></p>
-<ul>
-<li>With this app structure including the ngTimeMachine controls, you can easily frozen the timeline. Then you update your
-APP in the background and refresh browser. The APP would showing you exactly the same state you freeze the time.</li>
-<li>Follow up to the story above. How this structure can be use to fix the issue:<ul>
-<li>You need to develop/fix/update the screen (S). At first time, as the user you do select (A) -&gt; then select (B). Then
-you frozen the timeline.</li>
-<li>You update your APP. Then you refresh the browser to see changes in your application. Immediately, (A) and (B) has
-been selected. And your APP doing the request to SERVER right away.</li>
-<li>Even more what if your APP need to show some loading circle to notify the user. With the structure, you can freeze
-the timeline to develop the loading screen with easy.</li>
-</ul>
-</li>
-</ul>
-<h2 id="license">LICENSE</h2>
-<p>Apache 2.0</p>
+                        <h1 id="how-to-setup-application">How to setup application</h1>
+<h3 id="in-the-html-of-the-page">In the html of the page</h3>
+<p>Include the script is straight forward</p>
+<pre><code class="lang-html"><span class="hljs-doctype">&lt;!doctype html&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">html</span> <span class="hljs-attribute">lang</span>=<span class="hljs-value">&quot;en&quot;</span> <span class="hljs-attribute">data-framework</span>=<span class="hljs-value">&quot;angularjs&quot;</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">head</span>&gt;</span>
+<span class="hljs-comment">&lt;!-- page header --&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">head</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">body</span>&gt;</span>
+
+<span class="hljs-comment">&lt;!-- your page content with angular directive &amp; controllers etc... --&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-title">script</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">&quot;angular.js&quot;</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">script</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">&quot;ng-timemachine.js&quot;</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">script</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">&quot;application.js&quot;</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">body</span>&gt;</span>
+</code></pre>
+<h3 id="the-angular-app">The angular APP</h3>
+<p>Using TimeMachine is simple as the angular module declaration. You create your application with dependency <code>ngTimeMachine</code>.
+The store setup should be defined inside the <code>app.config</code></p>
+<pre><code class="lang-javascript">
+  <span class="hljs-keyword">var</span> app = angular.module(<span class="hljs-string">&apos;your-awesome-app&apos;</span>, [<span class="hljs-string">&apos;ngTimeMachine&apos;</span>]);
+
+  app.value(<span class="hljs-string">&apos;tmAppName&apos;</span>, <span class="hljs-string">&apos;your-awesome-app&apos;</span>); <span class="hljs-comment">// used for time machine to remember the state after browser refresh</span>
+  app.config([<span class="hljs-string">&apos;tmStoreProvider&apos;</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">Store</span>) </span>{
+    <span class="hljs-comment">// put your setup here...</span>
+
+    <span class="hljs-comment">// define the actions</span>
+    <span class="hljs-comment">// define initialstate</span>
+    <span class="hljs-comment">// define store</span>
+
+  });
+</code></pre>
+<h3 id="define-actions">Define actions</h3>
+<p>Base on the APP functionality, we define the actions which would update store data/state.
+Of course there are other actions that would <em>NOT</em> related to update store data, these action should stay inside the
+directive. ex: animation, ui transition etc...</p>
+<pre><code class="lang-javascript">
+  Store.defineActions([
+    <span class="hljs-string">&apos;todoCreate&apos;</span>,
+    <span class="hljs-string">&apos;todoRemove&apos;</span>,
+    <span class="hljs-string">&apos;todoComplete&apos;</span>,
+    <span class="hljs-string">&apos;todoUpdate&apos;</span>,
+    <span class="hljs-string">&apos;batchUpdate&apos;</span>,
+    <span class="hljs-string">&apos;filter&apos;</span>
+  ]);
+</code></pre>
+<h3 id="define-initial-state">Define initial state</h3>
+<p>There is a begin state for your app. That is what the APP look like when first load without any user interactions</p>
+<pre><code class="lang-javascript">
+  Store.initialState({
+    tasks: [],
+    filter: <span class="hljs-string">&apos;all&apos;</span>,
+    currentTaskId: <span class="hljs-number">0</span>
+  });
+</code></pre>
+<h3 id="store-implementation-business-logic-data-flow-in-app">Store implementation - business logic &amp; data flow in app</h3>
+<p>For every actions defined, the store should provide the handle function for each one. For convention, each store handle
+function should be prefix with <code>on</code> then the action name ex: <code>onTodoCreate</code></p>
+<pre><code class="lang-javascript">
+  Store.defineStore({
+    onTodoCreate: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">taskDesc</span>) </span>{
+      <span class="hljs-keyword">this</span>.state.currentTaskId++;
+      <span class="hljs-keyword">this</span>.state.tasks.push({desc: taskDesc, completed: <span class="hljs-literal">false</span>, taskId: <span class="hljs-keyword">this</span>.state.currentTaskId});
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.trigger(<span class="hljs-keyword">this</span>.state);
+    }
+    ...
+    ...
+  });
+</code></pre>
 
                     
                     </section>
@@ -314,14 +349,14 @@ the timeline to develop the loading screen with easy.</li>
         </div>
 
         
+        <a href="../app/directive.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page: Easy Directive"><i class="fa fa-angle-left"></i></a>
         
-        <a href="./app/index.html" class="navigation navigation-next navigation-unique" aria-label="Next page: Application Setup"><i class="fa fa-angle-right"></i></a>
         
     </div>
 </div>
 
         
-<script src="gitbook/app.js"></script>
+<script src="../gitbook/app.js"></script>
 
 <script>
 require(["gitbook"], function(gitbook) {
