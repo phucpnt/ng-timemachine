@@ -28,3 +28,5 @@ teammate as we keep rushing to deliver product.
 * There should be another way to enjoy developing web APP with AngularJS.
 * There should be a way to easily control the data flow in sophisticated web app.
 * It should be simple, easy and fun to grasp and adapt.
+
+This structure is inspired by FLUX from Reactjs and timemachine is inspired by Redux
