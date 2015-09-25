@@ -93,20 +93,36 @@ gulp.task('build-ghpages', function () {
 });
 
 
-gulp.task('gitbook', function () {
+gulp.task('gitbook', function (done) {
   var book = new gitbook.Book('docs/', {
     "config": {
       "output": "build/"
     }
   });
 
-  return book.parse()
+  book.parse()
       .then(function () {
         return book.generate('website');
       })
       .then(function () {
-        return gulp.src(['./dist/**/*'])
+
+        var stream = gulp.src(['./dist/**/*'])
             .pipe(copy('./build'));
+
+        stream.on('end', function () {
+          gulp.src(['./example/**/*'])
+              .pipe(copy('./build'))
+              .on('end', function () {
+                console.log('COPIED examples...');
+                done()
+              });
+        });
+
+        stream.on('error', function (err) {
+          console.error(err);
+          done(err);
+        })
+
       })
 });
 
@@ -115,7 +131,7 @@ gulp.task('example-copy', ['gitbook'], function () {
       .pipe(copy('./build'));
 });
 
-gulp.task('push-pages', ['example-copy'], function () {
+gulp.task('push-pages', ['gitbook'], function () {
   return gulp.src(['./build/**/*'])
       .pipe(ghPages({push: true}));
 });
