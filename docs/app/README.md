@@ -21,7 +21,7 @@ Passing data: object, array of object etc... in JS as default is passing the **p
 to track where the *Data* has been update, where the field of an object has been update/replace/remove.
 Should we use unit test to reduce the pain we have when developing and web application. I believe we can.
 
-I find out the front end team has been pushing very hard and constantly from the product owner. We have pressure to
+I find out the front end team has been pushing very hard and constantly from the product owners. We have pressure to
 deliver product as fast as possible. Develop the product then maintenance the unittest seems to be too hard for my
 teammate as we keep rushing to deliver product.
 

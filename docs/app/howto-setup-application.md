@@ -1,9 +1,37 @@
 # How to setup application
 
-The setup is straight forward and should be defined inside the `app.config`
+
+### In the html of the page
+
+Include the script is straight forward
+
+```html
+<!doctype html>
+<html lang="en" data-framework="angularjs">
+<head>
+<!-- page header -->
+</head>
+<body>
+
+<!-- your page content with angular directive & controllers etc... -->
+
+<script src="angular.js"></script>
+<script src="ng-timemachine.js"></script>
+<script src="application.js"></script>
+</body>
+```
+
+
+### The angular APP
+
+Using TimeMachine is simple as the angular module declaration. You create your application with dependency `ngTimeMachine`.
+The store setup should be defined inside the `app.config`
 
 ```javascript
 
+  var app = angular.module('your-awesome-app', ['ngTimeMachine']);
+
+  app.value('tmAppName', 'your-awesome-app'); // used for time machine to remember the state after browser refresh
   app.config(['tmStoreProvider', function (Store) {
     // put your setup here...
 
@@ -18,7 +46,7 @@ The setup is straight forward and should be defined inside the `app.config`
 ### Define actions
 
 Base on the APP functionality, we define the actions which would update store data/state.
-Of course there are other action that would *NOT* related to update store data, these action should stay inside the
+Of course there are other actions that would *NOT* related to update store data, these action should stay inside the
 directive. ex: animation, ui transition etc...
 
 ```javascript
