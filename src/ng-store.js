@@ -51,13 +51,16 @@
       }
     }
 
-    register($scope, scopeAttrMap, handleDef, skipFirstTime) {
+    __makeSelector($scope, scopeAttrMap, handleDef) {
+      return {$scope: $scope, attrMap: scopeAttrMap, handleDef: handleDef};
+    }
+
+    __register(selector, skipFirstTime) {
       var index = this.selectors.length;
-      var selector = {$scope: $scope, attrMap: scopeAttrMap, handleDef: handleDef};
       this.selectors.push(selector);
 
       // free memory
-      $scope.$on('$destroy', function (index, store) {
+      selector.$scope.$on('$destroy', function (index, store) {
         return function () {
           store.selectors.slice(index, 1);
         }
@@ -66,6 +69,10 @@
       if (!skipFirstTime) {
         this.__execSelectorHandler(selector);
       }
+    }
+
+    register($scope, scopeAttrMap, handleDef, skipFirstTime) {
+      return this.__register(this.__makeSelector($scope, scopeAttrMap, handleDef), skipFirstTime);
     }
 
     __execSelectorHandler(selector, state = null) {
@@ -102,13 +109,24 @@
 
       if (angular.isString(attrMap)) {
         selector.$scope[attrMap] = angular.copy(result);
+        console.log(result);
       }
-      else {
+      else if (angular.isObject(attrMap)) {
         _forEach(attrMap, (scopeAttr, resultAttr) => {
           $scope[scopeAttr] = angular.copy(result[resultAttr]);
         })
       }
+      else {
+        _forEach(result, (value, attr) => {
+          $scope[attr] = angular.copy(value);
+        });
+      }
+
       return true;
+    }
+
+    __getSelectors() {
+      return this.selectors;
     }
 
     trigger(state, force) {
@@ -117,8 +135,9 @@
         return;
       }
 
-      for (var i = 0; i < this.selectors.length; i++) {
-        var selector = this.selectors[i];
+      var selectors = this.__getSelectors();
+      for (var i = 0; i < selectors.length; i++) {
+        var selector = selectors[i];
         this.__execSelectorHandler(selector, state);
       }
 
