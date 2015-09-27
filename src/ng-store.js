@@ -109,7 +109,6 @@
 
       if (angular.isString(attrMap)) {
         selector.$scope[attrMap] = angular.copy(result);
-        console.log(result);
       }
       else if (angular.isObject(attrMap)) {
         _forEach(attrMap, (scopeAttr, resultAttr) => {
@@ -231,7 +230,6 @@
     }
 
     __request(label, url, params, method = 'JSONP', opts = {}) {
-      console.log(label);
       this.__markLoading(label, true);
       var defer = this.$q.defer();
 
