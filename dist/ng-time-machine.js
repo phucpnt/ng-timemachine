@@ -1,43 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-module.exports = function (css, customDocument) {
-  var doc = customDocument || document;
-  if (doc.createStyleSheet) {
-    var sheet = doc.createStyleSheet()
-    sheet.cssText = css;
-    return sheet.ownerNode;
-  } else {
-    var head = doc.getElementsByTagName('head')[0],
-        style = doc.createElement('style');
-
-    style.type = 'text/css';
-
-    if (style.styleSheet) {
-      style.styleSheet.cssText = css;
-    } else {
-      style.appendChild(doc.createTextNode(css));
-    }
-
-    head.appendChild(style);
-    return style;
-  }
-};
-
-module.exports.byUrl = function(url) {
-  if (document.createStyleSheet) {
-    return document.createStyleSheet(url).ownerNode;
-  } else {
-    var head = document.getElementsByTagName('head')[0],
-        link = document.createElement('link');
-
-    link.rel = 'stylesheet';
-    link.href = url;
-
-    head.appendChild(link);
-    return link;
-  }
-};
-
-},{}],2:[function(require,module,exports){
 /*jslint onevar:true, undef:true, newcap:true, regexp:true, bitwise:true, maxerr:50, indent:4, white:false, nomen:false, plusplus:false */
 /*global define:false, require:false, exports:false, module:false, signals:false */
 
@@ -484,7 +445,7 @@ module.exports.byUrl = function(url) {
 
 }(this));
 
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 ;(function(win){
 	var store = {},
 		doc = win.document,
@@ -661,97 +622,127 @@ module.exports.byUrl = function(url) {
 
 })(Function('return this')());
 
-},{}],4:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 (function (global){
+/**
+ * Created by Phuc on 9/28/2015.
+ */
+
+'use strict';
+
+var angular = (typeof window !== "undefined" ? window['angular'] : typeof global !== "undefined" ? global['angular'] : null);
+var Storage = require('store');
+var Store = require('./tm-store');
+
+module.exports = function (StoreProvider) {
+  var _extend = angular.extend;
+  var app = angular.module('ngTimeMachine', []);
+
+  app.value('tmAppName', '__need_your_app_name_override__');
+
+  /**
+   * refactor this: flexible Store class usage
+   */
+  app.provider('tmStore', StoreProvider);
+
+  app.directive('timeControls', ['tmStore', require('./tm-controls')]);
+  app.service('setupTimeControls', ['tmAppName', '$compile', '$rootElement', '$rootScope', 'tmStore', function (appName, $compile, $rootElement, $rootScope, $store) {
+    return {
+      start: function start() {
+        var $element = angular.element('<div time-controls />').attr('data-app-name', appName);
+        $store.setPersistStorage(Storage);
+        var frozenIndex = Storage.get(appName + '.__time_machine_frozen');
+        var histories = Storage.get(appName + '.__time_machine_histories');
+        var $nuScope = $rootScope.$new();
+        if (frozenIndex) {
+          $element.attr({
+            'data-frozen-index': frozenIndex,
+            'data-in-frozen': 1
+          });
+          $nuScope.histories = histories;
+        }
+        $rootElement.append($element);
+        $compile($element[0])($nuScope);
+
+        if (frozenIndex) {
+          var nuState = _extend({}, histories[frozenIndex]);
+          delete nuState.__time_machine;
+          $store.applyState(nuState, true);
+        } else {
+          $store.execute();
+        }
+      }
+    };
+  }]);
+
+  app.run(['setupTimeControls', function (setupTimeControls) {
+    setupTimeControls.start();
+  }]);
+
+  return app;
+};
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+
+},{"./tm-controls":8,"./tm-store":9,"store":2}],4:[function(require,module,exports){
 /**
  * Created by Phuc on 9/9/2015.
  */
 
 'use strict';
 
-var angular = (typeof window !== "undefined" ? window['angular'] : typeof global !== "undefined" ? global['angular'] : null);
-var cssify = require('cssify');
-var Storage = require('store');
+var StoreProvider = require('./ng-store-provider');
+var Store = require('./ng-store');
 
-var _extend = angular.extend;
-var app = angular.module('ngTimeMachine', []);
+require('./_index.js')(StoreProvider(Store));
 
-app.value('tmAppName', '__need_your_app_name_override__');
-app.provider('tmStore', function tmStore() {
+},{"./_index.js":3,"./ng-store":6,"./ng-store-provider":5}],5:[function(require,module,exports){
+/**
+ * Created by Phuc on 9/10/2015.
+ */
 
-  var Store = require('./tm-store');
-  var Actions = null;
-  var StoreClass = null;
-  var initialState = {};
+'use strict';
 
-  this.defineStore = function (storeDefs) {
-    StoreClass = Store.createClass(storeDefs);
+module.exports = function (Store) {
+  return function tmStore() {
+
+    var Actions = null;
+    var StoreClass = null;
+    var initialState = {};
+
+    this.defineStore = function (storeDefs) {
+      StoreClass = Store.createClass(storeDefs);
+    };
+    this.defineActions = function (actions) {
+      Actions = Store.makeActions(actions);
+    };
+    this.initialState = function (state) {
+      initialState = state;
+    };
+
+    this.$get = ['$q', '$http', '$timeout', function storeFactory($q, $http, $timeout) {
+      var storeInstance = new StoreClass(Actions, $q, $http, initialState);
+
+      storeInstance.mixIn(function makeSureScopeDigestWillBeTrigger() {
+        return {
+          trigger: function trigger(next) {
+            var _this = this;
+
+            return function (state) {
+              $timeout(function () {
+                next.call(_this, state);
+              });
+            };
+          }
+        };
+      });
+
+      return storeInstance;
+    }];
   };
-  this.defineActions = function (actions) {
-    Actions = Store.makeActions(actions);
-  };
-  this.initialState = function (state) {
-    initialState = state;
-  };
+};
 
-  this.$get = ['$q', '$http', '$timeout', function storeFactory($q, $http, $timeout) {
-    var storeInstance = new StoreClass(Actions, $q, $http, initialState);
-
-    storeInstance.mixIn(function makeSureScopeDigestWillBeTrigger() {
-      return {
-        trigger: function trigger(next) {
-          var _this = this;
-
-          return function (state) {
-            $timeout(function () {
-              next.call(_this, state);
-            });
-          };
-        }
-      };
-    });
-
-    return storeInstance;
-  }];
-});
-
-app.directive('timeControls', ['tmStore', require('./tm-controls')]);
-app.service('setupTimeControls', ['tmAppName', '$compile', '$rootElement', '$rootScope', 'tmStore', function (appName, $compile, $rootElement, $rootScope, $store) {
-  return {
-    start: function start() {
-      var $element = angular.element('<div time-controls />').attr('data-app-name', appName);
-      $store.setPersistStorage(Storage);
-      var frozenIndex = Storage.get(appName + '.__time_machine_frozen');
-      var histories = Storage.get(appName + '.__time_machine_histories');
-      var $nuScope = $rootScope.$new();
-      if (frozenIndex) {
-        $element.attr({
-          'data-frozen-index': frozenIndex,
-          'data-in-frozen': 1
-        });
-        $nuScope.histories = histories;
-      }
-      $rootElement.append($element);
-      $compile($element[0])($nuScope);
-
-      if (frozenIndex) {
-        var nuState = _extend({}, histories[frozenIndex]);
-        delete nuState.__time_machine;
-        $store.applyState(nuState, true);
-      } else {
-        $store.execute();
-      }
-    }
-  };
-}]);
-
-app.run(['setupTimeControls', function (setupTimeControls) {
-  setupTimeControls.start();
-}]);
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-
-},{"./tm-controls":7,"./tm-store":8,"cssify":1,"store":3}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/10/2015.
@@ -815,14 +806,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         }
       }
     }, {
-      key: 'register',
-      value: function register($scope, scopeAttrMap, handleDef, skipFirstTime) {
+      key: '__makeSelector',
+      value: function __makeSelector($scope, scopeAttrMap, handleDef) {
+        return { $scope: $scope, attrMap: scopeAttrMap, handleDef: handleDef };
+      }
+    }, {
+      key: '__register',
+      value: function __register(selector, skipFirstTime) {
         var index = this.selectors.length;
-        var selector = { $scope: $scope, attrMap: scopeAttrMap, handleDef: handleDef };
         this.selectors.push(selector);
 
         // free memory
-        $scope.$on('$destroy', (function (index, store) {
+        selector.$scope.$on('$destroy', (function (index, store) {
           return function () {
             store.selectors.slice(index, 1);
           };
@@ -831,6 +826,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         if (!skipFirstTime) {
           this.__execSelectorHandler(selector);
         }
+      }
+    }, {
+      key: 'register',
+      value: function register($scope, scopeAttrMap, handleDef, skipFirstTime) {
+        return this.__register(this.__makeSelector($scope, scopeAttrMap, handleDef), skipFirstTime);
       }
     }, {
       key: '__execSelectorHandler',
@@ -867,12 +867,22 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
         if (angular.isString(attrMap)) {
           selector.$scope[attrMap] = angular.copy(result);
-        } else {
+        } else if (angular.isObject(attrMap)) {
           _forEach(attrMap, function (scopeAttr, resultAttr) {
             $scope[scopeAttr] = angular.copy(result[resultAttr]);
           });
+        } else {
+          _forEach(result, function (value, attr) {
+            $scope[attr] = angular.copy(value);
+          });
         }
+
         return true;
+      }
+    }, {
+      key: '__getSelectors',
+      value: function __getSelectors() {
+        return this.selectors;
       }
     }, {
       key: 'trigger',
@@ -882,8 +892,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
           return;
         }
 
-        for (var i = 0; i < this.selectors.length; i++) {
-          var selector = this.selectors[i];
+        var selectors = this.__getSelectors();
+        for (var i = 0; i < selectors.length; i++) {
+          var selector = selectors[i];
           this.__execSelectorHandler(selector, state);
         }
 
@@ -996,7 +1007,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         var method = arguments.length <= 3 || arguments[3] === undefined ? 'JSONP' : arguments[3];
         var opts = arguments.length <= 4 || arguments[4] === undefined ? {} : arguments[4];
 
-        console.log(label);
         this.__markLoading(label, true);
         var defer = this.$q.defer();
 
@@ -1073,9 +1083,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],6:[function(require,module,exports){
-module.exports = '<style>\n  .in-frozen-mode {\n    background-color: #2574A9;\n    border-top: 1px solid #2574A9;\n  }\n\n  #tm-editor-instance {\n    height: 500px;\n  }\n</style>\n<nav class="navbar navbar-default navbar-fixed-bottom" ng-class="{\'navbar-inverse in-frozen-mode\': inFrozen}">\n  <div class="container">\n    <div class="navbar-brand" href="#">ngTimeMachine</div>\n    <div ng-if="inFrozen" class="navbar-brand" style="color: #fff;" href="#">In Frozen Time</div>\n    <p class="navbar-text">States <span class="badge">{{histories.length}}</span></p>\n    <button type="button" class="btn btn-info navbar-btn"\n            ng-click="openInjectEditor()"\n            title="Click to inject the register callback results">\n      Injectable Registers <span class="badge">{{injectableRegisters.length}}</span></button>\n\n    <div class="navbar-right">\n      <button type="button" ng-click="unFreeze()" ng-if="inFrozen" class="btn btn-danger">UnFreeze</button>\n      <button type="button" ng-click="frozenTime(timeline_index)" class="btn btn-success"\n              title="Click to frozen the next time you reload the browser">Frozen\n        Timeline <span class="badge">{{timeline_index + 1}}</span></button>\n      <button type="button" class="btn btn-default navbar-btn" ng-click="go(-1)"><i\n          class="glyphicon glyphicon-chevron-left"></i> Previous\n        <button type="button" class="btn btn-default navbar-btn" ng-click="go(1)">Next <i\n            class="glyphicon glyphicon-chevron-right"></i></button>\n      </button>\n    </div>\n  </div>\n</nav>\n\n<!-------- Inject register Editor ------------------>\n<div id="tm-inject-editor" class="modal fade" tabindex="-1" role="dialog">\n  <div class="modal-dialog modal-lg">\n    <div class="modal-content">\n      <div class="modal-header">\n        <h4>ngTimeMachine - Inject results to selected register\n          <div class="pull-right">\n            <button class="btn btn-sm btn-warning" ng-click="saveRegistersPermanent()"\n                    title="Save Injected results of registers permanently">Save Permanent\n            </button>\n            <button class="btn btn-sm btn-success" ng-click="applyInjectResult()">Apply Current Timeline\n            </button>\n          </div>\n        </h4>\n      </div>\n      <div class="modal-body">\n        <div class="row">\n          <div class="col-md-3">\n            <div class="list-group">\n              <button ng-repeat="item in injectableRegisters"\n                      ng-click="editRegisterResult($index)"\n                      type="button" class="list-group-item"\n                      ng-class="{active: item.selected}"\n                  >Register #{{item.storeIndex}}\n              </button>\n            </div>\n          </div>\n          <div class="col-md-9">\n            <div class="chosen-register">\n              <pre>{{chosenRegister.key}}</pre>\n            </div>\n            <div id="tm-editor-instance"></div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>';
 },{}],7:[function(require,module,exports){
+module.exports = '<style>\n  .in-frozen-mode {\n    background-color: #2574A9;\n    border-top: 1px solid #2574A9;\n  }\n\n  #tm-editor-instance {\n    height: 500px;\n  }\n</style>\n<nav class="navbar navbar-default navbar-fixed-bottom" ng-class="{\'navbar-inverse in-frozen-mode\': inFrozen}">\n  <div class="container">\n    <div class="navbar-brand" href="#">ngTimeMachine</div>\n    <div ng-if="inFrozen" class="navbar-brand" style="color: #fff;" href="#">In Frozen Time</div>\n    <p class="navbar-text">States <span class="badge">{{histories.length}}</span></p>\n    <button type="button" class="btn btn-info navbar-btn"\n            ng-click="openInjectEditor()"\n            title="Click to inject the register callback results">\n      Injectable Registers <span class="badge">{{injectableRegisters.length}}</span></button>\n\n    <div class="navbar-right">\n      <button type="button" ng-click="unFreeze()" ng-if="inFrozen" class="btn btn-danger">UnFreeze</button>\n      <button type="button" ng-click="frozenTime(timeline_index)" class="btn btn-success"\n              title="Click to frozen the next time you reload the browser">Frozen\n        Timeline <span class="badge">{{timeline_index + 1}}</span></button>\n      <button type="button" class="btn btn-default navbar-btn" ng-click="go(-1)"><i\n          class="glyphicon glyphicon-chevron-left"></i> Previous\n        <button type="button" class="btn btn-default navbar-btn" ng-click="go(1)">Next <i\n            class="glyphicon glyphicon-chevron-right"></i></button>\n      </button>\n    </div>\n  </div>\n</nav>\n\n<!-------- Inject register Editor ------------------>\n<div id="tm-inject-editor" class="modal fade" tabindex="-1" role="dialog">\n  <div class="modal-dialog modal-lg">\n    <div class="modal-content">\n      <div class="modal-header">\n        <h4>ngTimeMachine - Inject results to selected register\n          <div class="pull-right">\n            <button class="btn btn-sm btn-warning" ng-click="saveRegistersPermanent()"\n                    title="Save Injected results of registers permanently">Save Permanent\n            </button>\n            <button class="btn btn-sm btn-success" ng-click="applyInjectResult()">Apply Current Timeline\n            </button>\n          </div>\n        </h4>\n      </div>\n      <div class="modal-body">\n        <div class="row">\n          <div class="col-md-3">\n            <div class="list-group">\n              <button ng-repeat="item in injectableRegisters"\n                      ng-click="editRegisterResult($index)"\n                      type="button" class="list-group-item"\n                      ng-class="{active: item.selected}"\n                  >Register #{{item.storeIndex}}\n              </button>\n            </div>\n          </div>\n          <div class="col-md-9">\n            <div class="chosen-register">\n              <pre>{{chosenRegister.key}}</pre>\n            </div>\n            <div id="tm-editor-instance"></div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>';
+},{}],8:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/9/2015.
@@ -1157,7 +1167,7 @@ module.exports = '<style>\n  .in-frozen-mode {\n    background-color: #2574A9;\n
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./templates/tm-controls.html":6}],8:[function(require,module,exports){
+},{"./templates/tm-controls.html":7}],9:[function(require,module,exports){
 /**
  * Created by Phuc on 9/10/2015.
  */
@@ -1167,7 +1177,6 @@ module.exports = '<style>\n  .in-frozen-mode {\n    background-color: #2574A9;\n
 var Store = {};
 var ClassStore = require('./ng-store');
 var Signal = require('signals');
-var instance = null;
 
 Store.createClass = function (classDefs) {
   var ParentClass = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
@@ -1209,13 +1218,9 @@ Store.makeActions = function (actionNames) {
   return Actions;
 };
 
-Store.getInstance = function () {
-  return instance;
-};
-
 module.exports = Store;
 
-},{"./ng-store":5,"signals":2}]},{},[4])
+},{"./ng-store":6,"signals":1}]},{},[4])
 
 
 //# sourceMappingURL=ng-time-machine.js.map

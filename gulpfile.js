@@ -21,9 +21,12 @@ var p = require('partialify');
 // documents, gitbook build
 var gitbook = require('gitbook');
 
-function compile(watch) {
+function compile(watch, indexFile, bundleFile) {
 
-  var b = browserify('./src/index.js',
+  indexFile = indexFile || './src/index.js';
+  bundleFile = bundleFile || 'ng-time-machine.js';
+
+  var b = browserify(indexFile,
           {
             debug: true
           })
@@ -41,7 +44,7 @@ function compile(watch) {
           console.error(err);
           this.emit('end');
         })
-        .pipe(source('ng-time-machine.js'))
+        .pipe(source(bundleFile))
         .pipe(buffer())
         .pipe(sourcemaps.init({loadMaps: true}))
         .pipe(sourcemaps.write('./'))
@@ -50,7 +53,7 @@ function compile(watch) {
 
   if (watch) {
     bundler.on('update', function () {
-      console.log('-> bundling...');
+      console.log('-> bundling...', bundleFile);
       rebundle();
     });
   }
@@ -60,14 +63,19 @@ function compile(watch) {
 
 function watch() {
   return compile(true);
-};
+}
 
 gulp.task('build', function () {
-  return compile();
+  compile();
+  return compile(false, './src/index-store-focus.js', 'ng-time-machine-store-focus.js');
 });
+
 gulp.task('watch', function () {
-  return watch();
+  compile(true);
+  return compile(true, './src/index-store-focus.js', 'ng-time-machine-store-focus.js');
 });
+
+
 gulp.task('test', function (done) {
   new Server({
     configFile: __dirname + '/karma.conf.js',

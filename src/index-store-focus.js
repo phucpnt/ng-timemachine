@@ -3,7 +3,7 @@
  */
 
 var StoreProvider = require('./ng-store-provider');
-var Store = require('./ng-store');
+var Store = require('./ng-store-focus');
 
 require('./_index.js')(StoreProvider(Store));
 

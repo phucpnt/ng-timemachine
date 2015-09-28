@@ -5,7 +5,6 @@
 var Store = {};
 var ClassStore = require('./ng-store');
 var Signal = require('signals');
-var instance = null;
 
 Store.createClass = function (classDefs, ParentClass = null) {
   var ParentClass = ParentClass || ClassStore;
@@ -45,10 +44,5 @@ Store.makeActions = function (actionNames) {
   });
   return Actions;
 };
-
-Store.getInstance = function () {
-  return instance;
-};
-
 
 module.exports = Store;
