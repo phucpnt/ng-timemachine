@@ -1,0 +1,31 @@
+{
+  "name": "ng-time-machine",
+  "version": "0.0.2",
+  "homepage": "http://phucpnt.github.io/ng-timemachine",
+  "authors": [
+    "PhucPNT <phuc@phucpnt.com>"
+  ],
+  "description": "Angular structure supporting time travel, go back and forth the timeline within a click.",
+  "main": "dist/ng-time-machine.js",
+  "dependencies": {
+    "angular": "^1.4"
+  },
+  "keywords": [
+    "angular",
+    "angularjs",
+    "time-machine",
+    "state-machine",
+    "angularjs-flux-inspration",
+    "angularjs-redux-insipration",
+    "angularjs-snapshot",
+    "angularjs-state-machine"
+  ],
+  "license": "Apache 2.0",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
