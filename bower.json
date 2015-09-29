@@ -3,7 +3,7 @@
   "version": "0.0.2",
   "homepage": "http://phucpnt.github.io/ng-timemachine",
   "authors": [
-    "PhucPNT <phuc@phucpnt.com>"
+    "PhucPNT <mail@phucpnt.com>"
   ],
   "description": "Angular structure supporting time travel, go back and forth the timeline within a click.",
   "main": "dist/ng-time-machine.js",
