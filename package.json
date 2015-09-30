@@ -1,6 +1,6 @@
 {
   "name": "ng-time-machine",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Angularjs TimeMachine made easy. Play back forth within a click.",
   "main": "index.js",
   "directories": {
@@ -27,6 +27,7 @@
     "gulp": "^3.9.0",
     "gulp-copy": "0.0.2",
     "gulp-gh-pages": "^0.5.2",
+    "gulp-git": "^1.4.0",
     "gulp-sourcemaps": "^1.5.2",
     "jasmine-core": "^2.3.4",
     "karma": "^0.13.9",

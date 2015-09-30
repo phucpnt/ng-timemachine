@@ -69,7 +69,7 @@
       },
       template: template,
       link: link
-    }
+    };
   };
 
   module.exports = Directive;

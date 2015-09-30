@@ -91,6 +91,31 @@ gulp.task('test-dev', function (done) {
 });
 gulp.task('default', ['watch']);
 
+/**
+ * Update version on bower.json
+ * Update version on package.json
+ * Git tag for version
+ */
+gulp.task('version-up', function () {
+  var args = process.argv;
+  var tagVersion = args.slice(-1);
+  var fs = require('fs');
+
+  tagVersion = tagVersion[0].replace('--', '');
+
+  var pkg = require('./package.json');
+  pkg.version = tagVersion;
+  fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+
+  var bower = require('./bower.json');
+  bower.version = tagVersion;
+  fs.writeFileSync('bower.json', JSON.stringify(bower, null, 2));
+
+  var git = require('gulp-git');
+  git.tag('v' + tagVersion, 'Version up');
+
+});
+
 
 /**
  * Build the docs and push to github pages
