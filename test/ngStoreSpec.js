@@ -34,7 +34,7 @@ describe('ngTimeMachine module', () => {
   describe('ngStore provider in angular', () => {
     var Store;
     beforeEach(() => {
-      Store = require('../src/tm-store');
+      Store = require('../src/utility-store');
     });
 
     it('support create Actions', () => {

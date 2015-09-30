@@ -1859,10 +1859,50 @@ module.exports = FocusStore;
 
 'use strict';
 
-module.exports = function (StoreClassConcrete) {
+var Signal = require('signals');
 
-  var defineStoreClass = require('./tm-store');
-  var Store = defineStoreClass(StoreClassConcrete);
+module.exports = function (ClassStore) {
+
+  var Store = {
+    createClass: function createClass(classDefs) {
+      var ParentClass = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+
+      var ParentClass = ParentClass || ClassStore;
+      var constructor = classDefs.constructor;
+
+      function ChildClass() {
+        if (classDefs.hasOwnProperty('constructor')) {
+          constructor.apply(this, arguments);
+        } else {
+          ParentClass.apply(this, arguments);
+        }
+      }
+
+      ChildClass.prototype = Object.create(ParentClass.prototype);
+      ChildClass.prototype.constructor = ChildClass;
+
+      angular.extend(ChildClass.prototype, classDefs);
+
+      ChildClass.__super__ = ParentClass.prototype;
+
+      ChildClass.createClass = Store.createClass;
+
+      return ChildClass;
+    },
+    define: function define(storeDefs) {
+      var initialState = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
+      return Store.createClass(storeDefs);
+    },
+
+    makeActions: function makeActions(actionNames) {
+      var Actions = {};
+      actionNames.forEach(function (name) {
+        Actions[name] = new Signal();
+      });
+      return Actions;
+    }
+  };
 
   return function tmStore() {
 
@@ -1902,7 +1942,7 @@ module.exports = function (StoreClassConcrete) {
   };
 };
 
-},{"./tm-store":13}],10:[function(require,module,exports){
+},{"signals":3}],10:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/10/2015.

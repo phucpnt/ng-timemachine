@@ -2,10 +2,9 @@
  * Created by Phuc on 9/10/2015.
  */
 
-module.exports = function (StoreClassConcrete) {
+var Store = require('./utility-store');
 
-  var defineStoreClass = require('./tm-store');
-  var Store = defineStoreClass(StoreClassConcrete);
+module.exports = function (ClassStore) {
 
   return function tmStore() {
 
@@ -14,7 +13,7 @@ module.exports = function (StoreClassConcrete) {
     var initialState = {};
 
     this.defineStore = function (storeDefs) {
-      StoreClass = Store.createClass(storeDefs)
+      StoreClass = Store.createClass(storeDefs, ClassStore)
     };
     this.defineActions = function (actions) {
       Actions = Store.makeActions(actions);
@@ -42,4 +41,5 @@ module.exports = function (StoreClassConcrete) {
     }]
 
   };
-};
+}
+;

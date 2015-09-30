@@ -33,7 +33,7 @@ describe('ngTimeMachine module', () => {
   describe('ngStore', () => {
     var Store, Actions, instance;
     beforeEach(() => {
-      Store = require('../src/tm-store');
+      Store = require('../src/utility-store');
     });
 
     beforeEach(() => {
