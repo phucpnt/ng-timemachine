@@ -46,4 +46,4 @@ module.exports = function (ClassStore) {
   };
 
   return Store;
-}
+};

@@ -26,8 +26,8 @@ module.exports = function (StoreProvider) {
         start: ()=> {
           var $element = angular.element('<div time-controls />').attr('data-app-name', appName);
           $store.setPersistStorage(Storage);
-          var frozenIndex = Storage.get(appName + $const.BSKeyIsfrozen);
-          var histories = Storage.get(appName + $const.BSKeyHistories);
+          var frozenIndex = Storage.get([appName, $const.BSKeyIsfrozen].join('.'));
+          var histories = Storage.get([appName, $const.BSKeyHistories].join('.'));
           var $nuScope = $rootScope.$new();
           if (frozenIndex) {
             $element.attr({
