@@ -2,7 +2,11 @@
  * Created by Phuc on 9/10/2015.
  */
 
-module.exports = function (Store) {
+module.exports = function (StoreClassConcrete) {
+
+  var defineStoreClass = require('./tm-store');
+  var Store = defineStoreClass(StoreClassConcrete);
+
   return function tmStore() {
 
     var Actions = null;

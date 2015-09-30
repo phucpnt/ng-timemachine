@@ -2,47 +2,48 @@
  * Created by Phuc on 9/10/2015.
  */
 
-var Store = {};
-var ClassStore = require('./ng-store');
 var Signal = require('signals');
 
-Store.createClass = function (classDefs, ParentClass = null) {
-  var ParentClass = ParentClass || ClassStore;
-  var constructor = classDefs.constructor;
+module.exports = function (ClassStore) {
+  var Store = {};
+  Store.createClass = function (classDefs, ParentClass = null) {
+    var ParentClass = ParentClass || ClassStore;
+    var constructor = classDefs.constructor;
 
-  function ChildClass() {
-    if (classDefs.hasOwnProperty('constructor')) {
-      constructor.apply(this, arguments);
+    function ChildClass() {
+      if (classDefs.hasOwnProperty('constructor')) {
+        constructor.apply(this, arguments);
+      }
+      else {
+        ParentClass.apply(this, arguments);
+      }
     }
-    else {
-      ParentClass.apply(this, arguments);
-    }
-  }
 
-  ChildClass.prototype = Object.create(ParentClass.prototype);
-  ChildClass.prototype.constructor = ChildClass;
+    ChildClass.prototype = Object.create(ParentClass.prototype);
+    ChildClass.prototype.constructor = ChildClass;
 
-  angular.extend(ChildClass.prototype, classDefs);
+    angular.extend(ChildClass.prototype, classDefs);
 
-  ChildClass.__super__ = ParentClass.prototype;
+    ChildClass.__super__ = ParentClass.prototype;
 
-  ChildClass.createClass = Store.createClass;
+    ChildClass.createClass = Store.createClass;
 
 
-  return ChildClass;
+    return ChildClass;
 
-};
+  };
 
-Store.define = function (storeDefs, initialState = {}) {
-  return Store.createClass(storeDefs);
-};
+  Store.define = function (storeDefs, initialState = {}) {
+    return Store.createClass(storeDefs);
+  };
 
-Store.makeActions = function (actionNames) {
-  var Actions = {};
-  actionNames.forEach((name) => {
-    Actions[name] = new Signal;
-  });
-  return Actions;
-};
+  Store.makeActions = function (actionNames) {
+    var Actions = {};
+    actionNames.forEach((name) => {
+      Actions[name] = new Signal;
+    });
+    return Actions;
+  };
 
-module.exports = Store;
+  return Store;
+}

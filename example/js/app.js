@@ -8,6 +8,8 @@
   app.value('tmAppName', 'todomvc-tm');
   app.config(['tmStoreProvider', function (Store) {
 
+    console.log(Store);
+
     Store.initialState({
       tasks: [],
       filter: 'all',
