@@ -6,6 +6,8 @@ var angular = require('angular');
 var Storage = require('store');
 var Store = require('./tm-store');
 
+import * as $const from './_const';
+
 module.exports = function (StoreProvider) {
   var _extend = angular.extend;
   var app = angular.module('ngTimeMachine', []);
@@ -24,8 +26,8 @@ module.exports = function (StoreProvider) {
         start: ()=> {
           var $element = angular.element('<div time-controls />').attr('data-app-name', appName);
           $store.setPersistStorage(Storage);
-          var frozenIndex = Storage.get(appName + '.__time_machine_frozen');
-          var histories = Storage.get(appName + '.__time_machine_histories');
+          var frozenIndex = Storage.get(appName + $const.BSKeyIsfrozen);
+          var histories = Storage.get(appName + $const.BSKeyHistories);
           var $nuScope = $rootScope.$new();
           if (frozenIndex) {
             $element.attr({

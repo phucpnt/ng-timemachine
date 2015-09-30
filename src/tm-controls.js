@@ -8,6 +8,8 @@
   var _extend = angular.extend;
   var _clone = angular.copy;
   var template = require('./templates/tm-controls.html');
+  import * as $const from './_const';
+
 
   var Directive = function ($store) {
 
@@ -18,7 +20,7 @@
         return appName + '.' + key;
       }
 
-      $scope.histories = $store.getPersistStorage().get(getStorageKey('__time_machine_histories')) || [];
+      $scope.histories = $store.getPersistStorage().get(getStorageKey($const.BSKeyHistories)) || [];
       $store.register($scope, 'timeline_index', function (state) {
         var index;
         if (_isUndefined(state.__time_machine)) {
@@ -48,15 +50,15 @@
         }
 
         var Storage = $store.getPersistStorage();
-        Storage.set(getStorageKey('__time_machine_frozen'), timelineIndex);
-        Storage.set(getStorageKey('__time_machine_histories'), $scope.histories);
+        Storage.set(getStorageKey($const.BSKeyIsfrozen), timelineIndex);
+        Storage.set(getStorageKey($const.BSKeyHistories), $scope.histories);
         window.location.reload();
       };
 
       $scope.unFreeze = function () {
         var Storage = $store.getPersistStorage();
-        Storage.remove(getStorageKey('__time_machine_frozen'));
-        Storage.remove(getStorageKey('__time_machine_histories'));
+        Storage.remove(getStorageKey($const.BSKeyIsfrozen));
+        Storage.remove(getStorageKey($const.BSKeyHistories));
         window.location.reload();
       }
     };
