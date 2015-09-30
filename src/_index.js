@@ -4,7 +4,6 @@
 
 var angular = require('angular');
 var Storage = require('store');
-var Store = require('./tm-store');
 
 import * as $const from './_const';
 

@@ -1,6 +1,6 @@
 {
   "name": "ng-time-machine",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Angularjs TimeMachine made easy. Play back forth within a click.",
   "main": "index.js",
   "directories": {

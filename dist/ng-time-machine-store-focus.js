@@ -1654,7 +1654,6 @@ var $const = _interopRequireWildcard(_const);
 
 var angular = (typeof window !== "undefined" ? window['angular'] : typeof global !== "undefined" ? global['angular'] : null);
 var Storage = require('store');
-var Store = require('./tm-store');
 
 module.exports = function (StoreProvider) {
   var _extend = angular.extend;
@@ -1706,7 +1705,7 @@ module.exports = function (StoreProvider) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./_const":5,"./tm-controls":12,"./tm-store":13,"store":4}],7:[function(require,module,exports){
+},{"./_const":5,"./tm-controls":12,"store":4}],7:[function(require,module,exports){
 /**
  * Created by Phuc on 9/9/2015.
  */
@@ -1859,50 +1858,9 @@ module.exports = FocusStore;
 
 'use strict';
 
-var Signal = require('signals');
+var Store = require('./utility-store');
 
 module.exports = function (ClassStore) {
-
-  var Store = {
-    createClass: function createClass(classDefs) {
-      var ParentClass = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
-
-      var ParentClass = ParentClass || ClassStore;
-      var constructor = classDefs.constructor;
-
-      function ChildClass() {
-        if (classDefs.hasOwnProperty('constructor')) {
-          constructor.apply(this, arguments);
-        } else {
-          ParentClass.apply(this, arguments);
-        }
-      }
-
-      ChildClass.prototype = Object.create(ParentClass.prototype);
-      ChildClass.prototype.constructor = ChildClass;
-
-      angular.extend(ChildClass.prototype, classDefs);
-
-      ChildClass.__super__ = ParentClass.prototype;
-
-      ChildClass.createClass = Store.createClass;
-
-      return ChildClass;
-    },
-    define: function define(storeDefs) {
-      var initialState = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
-
-      return Store.createClass(storeDefs);
-    },
-
-    makeActions: function makeActions(actionNames) {
-      var Actions = {};
-      actionNames.forEach(function (name) {
-        Actions[name] = new Signal();
-      });
-      return Actions;
-    }
-  };
 
   return function tmStore() {
 
@@ -1911,7 +1869,7 @@ module.exports = function (ClassStore) {
     var initialState = {};
 
     this.defineStore = function (storeDefs) {
-      StoreClass = Store.createClass(storeDefs);
+      StoreClass = Store.createClass(storeDefs, ClassStore);
     };
     this.defineActions = function (actions) {
       Actions = Store.makeActions(actions);
@@ -1942,7 +1900,7 @@ module.exports = function (ClassStore) {
   };
 };
 
-},{"signals":3}],10:[function(require,module,exports){
+},{"./utility-store":13}],10:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/10/2015.
@@ -2379,50 +2337,48 @@ module.exports = Directive;
 
 var Signal = require('signals');
 
-module.exports = function (ClassStore) {
-  var Store = {};
-  Store.createClass = function (classDefs) {
-    var ParentClass = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+var Store = {};
+Store.createClass = function (classDefs) {
+  var ParentClass = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
 
-    var ParentClass = ParentClass || ClassStore;
-    var constructor = classDefs.constructor;
+  var ParentClass = ParentClass || ClassStore;
+  var constructor = classDefs.constructor;
 
-    function ChildClass() {
-      if (classDefs.hasOwnProperty('constructor')) {
-        constructor.apply(this, arguments);
-      } else {
-        ParentClass.apply(this, arguments);
-      }
+  function ChildClass() {
+    if (classDefs.hasOwnProperty('constructor')) {
+      constructor.apply(this, arguments);
+    } else {
+      ParentClass.apply(this, arguments);
     }
+  }
 
-    ChildClass.prototype = Object.create(ParentClass.prototype);
-    ChildClass.prototype.constructor = ChildClass;
+  ChildClass.prototype = Object.create(ParentClass.prototype);
+  ChildClass.prototype.constructor = ChildClass;
 
-    angular.extend(ChildClass.prototype, classDefs);
+  angular.extend(ChildClass.prototype, classDefs);
 
-    ChildClass.__super__ = ParentClass.prototype;
+  ChildClass.__super__ = ParentClass.prototype;
 
-    ChildClass.createClass = Store.createClass;
+  ChildClass.createClass = Store.createClass;
 
-    return ChildClass;
-  };
-
-  Store.define = function (storeDefs) {
-    var initialState = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
-
-    return Store.createClass(storeDefs);
-  };
-
-  Store.makeActions = function (actionNames) {
-    var Actions = {};
-    actionNames.forEach(function (name) {
-      Actions[name] = new Signal();
-    });
-    return Actions;
-  };
-
-  return Store;
+  return ChildClass;
 };
+
+Store.define = function (storeDefs) {
+  var initialState = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
+  return Store.createClass(storeDefs);
+};
+
+Store.makeActions = function (actionNames) {
+  var Actions = {};
+  actionNames.forEach(function (name) {
+    Actions[name] = new Signal();
+  });
+  return Actions;
+};
+
+module.exports = Store;
 
 },{"signals":3}]},{},[7])
 
