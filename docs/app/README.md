@@ -1,4 +1,4 @@
-# Motivation AngularJS application setup
+# AngularJS application setup - The motivation
 
 When I first starting working on angularJS, I was amazed by its ability to expressing the HTML in expressive manners.
 It come from the Directive setup in AngularJS. At that time, using the **ngController** in AngularJS sound a natural flow

@@ -3,6 +3,8 @@
 
 ### In the html of the page
 
+#### For download and use directly
+
 Include the script is straight forward
 
 ```html
@@ -16,9 +18,15 @@ Include the script is straight forward
 <!-- your page content with angular directive & controllers etc... -->
 
 <script src="angular.js"></script>
-<script src="ng-timemachine.js"></script>
+<script src="dist/ng-timemachine.js"></script>
 <script src="application.js"></script>
 </body>
+```
+
+#### For bower
+
+```shell
+bower install -S ng-time-machine
 ```
 
 

@@ -64,9 +64,9 @@ store.register($scope, 'scopefield', [data..., 'filterABC']);
 * Should it be simple if the directive only getting the data from the store. Whatever they do with the data would _not
 effect data inside the store_.
 
-* When passing data to AngularJS *$scope* to produce some presentation (ngRepeat, display value etc), if data is an object
-you would see the extra field **$$hashKey** has been probably appended into the object. Imagine you need to store the whole data
-as the json encoded string, the extra **$hashKey** could be trash field for your database.
+* When passing data to AngularJS `$scope` to produce some presentation (ngRepeat, display value etc), if data is an object
+you would see the extra field `$hashKey` has been probably appended into the object. Imagine you need to store the whole data
+as the json encoded string, the extra `$hashKey` could be trash field for your database.
 
 * It reduce the complexity of data passing inside the whole application: Different Directives can use the same object to
 produce different presentation, accidentally they could mess-up shared data because of the **pointer** passing in JS.
