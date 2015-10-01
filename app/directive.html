@@ -5,7 +5,7 @@
         
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-        <title>Easy Directive | Introduction</title>
+        <title>Easy Directive | ngTimeMachine</title>
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="generator" content="GitBook 2.4.1">
@@ -40,7 +40,7 @@
     <body>
         
         
-    <div class="book" data-level="1.1" data-basepath=".." data-revision="Sat Sep 26 2015 01:42:46 GMT+0700 (SE Asia Standard Time)">
+    <div class="book" data-level="1.1" data-basepath=".." data-revision="Thu Oct 01 2015 09:07:12 GMT+0700 (SE Asia Standard Time)">
     
 
 <div class="book-summary">
@@ -261,7 +261,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="../" >Introduction</a>
+        <a href="../" >ngTimeMachine</a>
     </h1>
 </div>
 
@@ -324,9 +324,9 @@ multiple updates in the Store.</li>
 <li><p>Should it be simple if the directive only getting the data from the store. Whatever they do with the data would <em>not
 effect data inside the store</em>.</p>
 </li>
-<li><p>When passing data to AngularJS <em>$scope</em> to produce some presentation (ngRepeat, display value etc), if data is an object
-you would see the extra field <strong>$$hashKey</strong> has been probably appended into the object. Imagine you need to store the whole data
-as the json encoded string, the extra <strong>$hashKey</strong> could be trash field for your database.</p>
+<li><p>When passing data to AngularJS <code>$scope</code> to produce some presentation (ngRepeat, display value etc), if data is an object
+you would see the extra field <code>$hashKey</code> has been probably appended into the object. Imagine you need to store the whole data
+as the json encoded string, the extra <code>$hashKey</code> could be trash field for your database.</p>
 </li>
 <li><p>It reduce the complexity of data passing inside the whole application: Different Directives can use the same object to
 produce different presentation, accidentally they could mess-up shared data because of the <strong>pointer</strong> passing in JS.

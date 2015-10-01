@@ -1,4 +1,1005 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/*!
+* https://github.com/Starcounter-Jack/JSON-Patch
+* json-patch-duplex.js version: 0.5.4
+* (c) 2013 Joachim Wester
+* MIT license
+*/
+var __extends = this.__extends || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    __.prototype = b.prototype;
+    d.prototype = new __();
+};
+
+var OriginalError = Error;
+
+var jsonpatch;
+(function (jsonpatch) {
+    /* Do nothing if module is already defined.
+    Doesn't look nice, as we cannot simply put
+    `!jsonpatch &&` before this immediate function call
+    in TypeScript.
+    */
+    if (jsonpatch.observe) {
+        return;
+    }
+
+    var _objectKeys = (function () {
+        if (Object.keys)
+            return Object.keys;
+
+        return function (o) {
+            var keys = [];
+            for (var i in o) {
+                if (o.hasOwnProperty(i)) {
+                    keys.push(i);
+                }
+            }
+            return keys;
+        };
+    })();
+
+    function _equals(a, b) {
+        switch (typeof a) {
+            case 'undefined':
+            case 'boolean':
+            case 'string':
+            case 'number':
+                return a === b;
+            case 'object':
+                if (a === null)
+                    return b === null;
+                if (_isArray(a)) {
+                    if (!_isArray(b) || a.length !== b.length)
+                        return false;
+
+                    for (var i = 0, l = a.length; i < l; i++)
+                        if (!_equals(a[i], b[i]))
+                            return false;
+
+                    return true;
+                }
+
+                var bKeys = _objectKeys(b);
+                var bLength = bKeys.length;
+                if (_objectKeys(a).length !== bLength)
+                    return false;
+
+                for (var i = 0; i < bLength; i++)
+                    if (!_equals(a[i], b[i]))
+                        return false;
+
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    /* We use a Javascript hash to store each
+    function. Each hash entry (property) uses
+    the operation identifiers specified in rfc6902.
+    In this way, we can map each patch operation
+    to its dedicated function in efficient way.
+    */
+    /* The operations applicable to an object */
+    var objOps = {
+        add: function (obj, key) {
+            obj[key] = this.value;
+            return true;
+        },
+        remove: function (obj, key) {
+            delete obj[key];
+            return true;
+        },
+        replace: function (obj, key) {
+            obj[key] = this.value;
+            return true;
+        },
+        move: function (obj, key, tree) {
+            var temp = { op: "_get", path: this.from };
+            apply(tree, [temp]);
+            apply(tree, [
+                { op: "remove", path: this.from }
+            ]);
+            apply(tree, [
+                { op: "add", path: this.path, value: temp.value }
+            ]);
+            return true;
+        },
+        copy: function (obj, key, tree) {
+            var temp = { op: "_get", path: this.from };
+            apply(tree, [temp]);
+            apply(tree, [
+                { op: "add", path: this.path, value: temp.value }
+            ]);
+            return true;
+        },
+        test: function (obj, key) {
+            return _equals(obj[key], this.value);
+        },
+        _get: function (obj, key) {
+            this.value = obj[key];
+        }
+    };
+
+    /* The operations applicable to an array. Many are the same as for the object */
+    var arrOps = {
+        add: function (arr, i) {
+            arr.splice(i, 0, this.value);
+            return true;
+        },
+        remove: function (arr, i) {
+            arr.splice(i, 1);
+            return true;
+        },
+        replace: function (arr, i) {
+            arr[i] = this.value;
+            return true;
+        },
+        move: objOps.move,
+        copy: objOps.copy,
+        test: objOps.test,
+        _get: objOps._get
+    };
+
+    /* The operations applicable to object root. Many are the same as for the object */
+    var rootOps = {
+        add: function (obj) {
+            rootOps.remove.call(this, obj);
+            for (var key in this.value) {
+                if (this.value.hasOwnProperty(key)) {
+                    obj[key] = this.value[key];
+                }
+            }
+            return true;
+        },
+        remove: function (obj) {
+            for (var key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    objOps.remove.call(this, obj, key);
+                }
+            }
+            return true;
+        },
+        replace: function (obj) {
+            apply(obj, [
+                { op: "remove", path: this.path }
+            ]);
+            apply(obj, [
+                { op: "add", path: this.path, value: this.value }
+            ]);
+            return true;
+        },
+        move: objOps.move,
+        copy: objOps.copy,
+        test: function (obj) {
+            return (JSON.stringify(obj) === JSON.stringify(this.value));
+        },
+        _get: function (obj) {
+            this.value = obj;
+        }
+    };
+
+    var observeOps = {
+        add: function (patches, path) {
+            var patch = {
+                op: "add",
+                path: path + escapePathComponent(this.name),
+                value: this.object[this.name] };
+            patches.push(patch);
+        },
+        'delete': function (patches, path) {
+            var patch = {
+                op: "remove",
+                path: path + escapePathComponent(this.name)
+            };
+            patches.push(patch);
+        },
+        update: function (patches, path) {
+            var patch = {
+                op: "replace",
+                path: path + escapePathComponent(this.name),
+                value: this.object[this.name]
+            };
+            patches.push(patch);
+        }
+    };
+
+    function escapePathComponent(str) {
+        if (str.indexOf('/') === -1 && str.indexOf('~') === -1)
+            return str;
+        return str.replace(/~/g, '~0').replace(/\//g, '~1');
+    }
+
+    function _getPathRecursive(root, obj) {
+        var found;
+        for (var key in root) {
+            if (root.hasOwnProperty(key)) {
+                if (root[key] === obj) {
+                    return escapePathComponent(key) + '/';
+                } else if (typeof root[key] === 'object') {
+                    found = _getPathRecursive(root[key], obj);
+                    if (found != '') {
+                        return escapePathComponent(key) + '/' + found;
+                    }
+                }
+            }
+        }
+        return '';
+    }
+
+    function getPath(root, obj) {
+        if (root === obj) {
+            return '/';
+        }
+        var path = _getPathRecursive(root, obj);
+        if (path === '') {
+            throw new OriginalError("Object not found in root");
+        }
+        return '/' + path;
+    }
+
+    var beforeDict = [];
+
+    jsonpatch.intervals;
+
+    var Mirror = (function () {
+        function Mirror(obj) {
+            this.observers = [];
+            this.obj = obj;
+        }
+        return Mirror;
+    })();
+
+    var ObserverInfo = (function () {
+        function ObserverInfo(callback, observer) {
+            this.callback = callback;
+            this.observer = observer;
+        }
+        return ObserverInfo;
+    })();
+
+    function getMirror(obj) {
+        for (var i = 0, ilen = beforeDict.length; i < ilen; i++) {
+            if (beforeDict[i].obj === obj) {
+                return beforeDict[i];
+            }
+        }
+    }
+
+    function getObserverFromMirror(mirror, callback) {
+        for (var j = 0, jlen = mirror.observers.length; j < jlen; j++) {
+            if (mirror.observers[j].callback === callback) {
+                return mirror.observers[j].observer;
+            }
+        }
+    }
+
+    function removeObserverFromMirror(mirror, observer) {
+        for (var j = 0, jlen = mirror.observers.length; j < jlen; j++) {
+            if (mirror.observers[j].observer === observer) {
+                mirror.observers.splice(j, 1);
+                return;
+            }
+        }
+    }
+
+    function unobserve(root, observer) {
+        generate(observer);
+        if (Object.observe) {
+            _unobserve(observer, root);
+        } else {
+            clearTimeout(observer.next);
+        }
+
+        var mirror = getMirror(root);
+        removeObserverFromMirror(mirror, observer);
+    }
+    jsonpatch.unobserve = unobserve;
+
+    function deepClone(obj) {
+        if (typeof obj === "object") {
+            return JSON.parse(JSON.stringify(obj));
+        } else {
+            return obj;
+        }
+    }
+
+    function observe(obj, callback) {
+        var patches = [];
+        var root = obj;
+        var observer;
+        var mirror = getMirror(obj);
+
+        if (!mirror) {
+            mirror = new Mirror(obj);
+            beforeDict.push(mirror);
+        } else {
+            observer = getObserverFromMirror(mirror, callback);
+        }
+
+        if (observer) {
+            return observer;
+        }
+
+        if (Object.observe) {
+            observer = function (arr) {
+                //This "refresh" is needed to begin observing new object properties
+                _unobserve(observer, obj);
+                _observe(observer, obj);
+
+                var a = 0, alen = arr.length;
+                while (a < alen) {
+                    if (!(arr[a].name === 'length' && _isArray(arr[a].object)) && !(arr[a].name === '__Jasmine_been_here_before__')) {
+                        observeOps[arr[a].type].call(arr[a], patches, getPath(root, arr[a].object));
+                    }
+                    a++;
+                }
+
+                if (patches) {
+                    if (callback) {
+                        callback(patches);
+                    }
+                }
+                observer.patches = patches;
+                patches = [];
+            };
+        } else {
+            observer = {};
+
+            mirror.value = deepClone(obj);
+
+            if (callback) {
+                //callbacks.push(callback); this has no purpose
+                observer.callback = callback;
+                observer.next = null;
+                var intervals = this.intervals || [100, 1000, 10000, 60000];
+                if (intervals.push === void 0) {
+                    throw new OriginalError("jsonpatch.intervals must be an array");
+                }
+                var currentInterval = 0;
+
+                var dirtyCheck = function () {
+                    generate(observer);
+                };
+                var fastCheck = function () {
+                    clearTimeout(observer.next);
+                    observer.next = setTimeout(function () {
+                        dirtyCheck();
+                        currentInterval = 0;
+                        observer.next = setTimeout(slowCheck, intervals[currentInterval++]);
+                    }, 0);
+                };
+                var slowCheck = function () {
+                    dirtyCheck();
+                    if (currentInterval == intervals.length)
+                        currentInterval = intervals.length - 1;
+                    observer.next = setTimeout(slowCheck, intervals[currentInterval++]);
+                };
+                if (typeof window !== 'undefined') {
+                    if (window.addEventListener) {
+                        window.addEventListener('mousedown', fastCheck);
+                        window.addEventListener('mouseup', fastCheck);
+                        window.addEventListener('keydown', fastCheck);
+                    } else {
+                        document.documentElement.attachEvent('onmousedown', fastCheck);
+                        document.documentElement.attachEvent('onmouseup', fastCheck);
+                        document.documentElement.attachEvent('onkeydown', fastCheck);
+                    }
+                }
+                observer.next = setTimeout(slowCheck, intervals[currentInterval++]);
+            }
+        }
+        observer.patches = patches;
+        observer.object = obj;
+
+        mirror.observers.push(new ObserverInfo(callback, observer));
+
+        return _observe(observer, obj);
+    }
+    jsonpatch.observe = observe;
+
+    /// Listen to changes on an object tree, accumulate patches
+    function _observe(observer, obj) {
+        if (Object.observe) {
+            Object.observe(obj, observer);
+            for (var key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    var v = obj[key];
+                    if (v && typeof (v) === "object") {
+                        _observe(observer, v);
+                    }
+                }
+            }
+        }
+        return observer;
+    }
+
+    function _unobserve(observer, obj) {
+        if (Object.observe) {
+            Object.unobserve(obj, observer);
+            for (var key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    var v = obj[key];
+                    if (v && typeof (v) === "object") {
+                        _unobserve(observer, v);
+                    }
+                }
+            }
+        }
+        return observer;
+    }
+
+    function generate(observer) {
+        if (Object.observe) {
+            Object.deliverChangeRecords(observer);
+        } else {
+            var mirror;
+            for (var i = 0, ilen = beforeDict.length; i < ilen; i++) {
+                if (beforeDict[i].obj === observer.object) {
+                    mirror = beforeDict[i];
+                    break;
+                }
+            }
+            _generate(mirror.value, observer.object, observer.patches, "");
+            if (observer.patches.length) {
+                apply(mirror.value, observer.patches);
+            }
+        }
+        var temp = observer.patches;
+        if (temp.length > 0) {
+            observer.patches = [];
+            if (observer.callback) {
+                observer.callback(temp);
+            }
+        }
+        return temp;
+    }
+    jsonpatch.generate = generate;
+
+    // Dirty check if obj is different from mirror, generate patches and update mirror
+    function _generate(mirror, obj, patches, path) {
+        var newKeys = _objectKeys(obj);
+        var oldKeys = _objectKeys(mirror);
+        var changed = false;
+        var deleted = false;
+
+        for (var t = oldKeys.length - 1; t >= 0; t--) {
+            var key = oldKeys[t];
+            var oldVal = mirror[key];
+            if (obj.hasOwnProperty(key)) {
+                var newVal = obj[key];
+                if (typeof oldVal == "object" && oldVal != null && typeof newVal == "object" && newVal != null) {
+                    _generate(oldVal, newVal, patches, path + "/" + escapePathComponent(key));
+                } else {
+                    if (oldVal != newVal) {
+                        changed = true;
+                        patches.push({ op: "replace", path: path + "/" + escapePathComponent(key), value: deepClone(newVal) });
+                    }
+                }
+            } else {
+                patches.push({ op: "remove", path: path + "/" + escapePathComponent(key) });
+                deleted = true; // property has been deleted
+            }
+        }
+
+        if (!deleted && newKeys.length == oldKeys.length) {
+            return;
+        }
+
+        for (var t = 0; t < newKeys.length; t++) {
+            var key = newKeys[t];
+            if (!mirror.hasOwnProperty(key)) {
+                patches.push({ op: "add", path: path + "/" + escapePathComponent(key), value: deepClone(obj[key]) });
+            }
+        }
+    }
+
+    var _isArray;
+    if (Array.isArray) {
+        _isArray = Array.isArray;
+    } else {
+        _isArray = function (obj) {
+            return obj.push && typeof obj.length === 'number';
+        };
+    }
+
+    //3x faster than cached /^\d+$/.test(str)
+    function isInteger(str) {
+        var i = 0;
+        var len = str.length;
+        var charCode;
+        while (i < len) {
+            charCode = str.charCodeAt(i);
+            if (charCode >= 48 && charCode <= 57) {
+                i++;
+                continue;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /// Apply a json-patch operation on an object tree
+    function apply(tree, patches, validate) {
+        var result = false, p = 0, plen = patches.length, patch, key;
+        while (p < plen) {
+            patch = patches[p];
+            p++;
+
+            // Find the object
+            var path = patch.path || "";
+            var keys = path.split('/');
+            var obj = tree;
+            var t = 1;
+            var len = keys.length;
+            var existingPathFragment = undefined;
+
+            while (true) {
+                key = keys[t];
+
+                if (validate) {
+                    if (existingPathFragment === undefined) {
+                        if (obj[key] === undefined) {
+                            existingPathFragment = keys.slice(0, t).join('/');
+                        } else if (t == len - 1) {
+                            existingPathFragment = patch.path;
+                        }
+                        if (existingPathFragment !== undefined) {
+                            this.validator(patch, p - 1, tree, existingPathFragment);
+                        }
+                    }
+                }
+
+                t++;
+                if (key === undefined) {
+                    if (t >= len) {
+                        result = rootOps[patch.op].call(patch, obj, key, tree); // Apply patch
+                        break;
+                    }
+                }
+                if (_isArray(obj)) {
+                    if (key === '-') {
+                        key = obj.length;
+                    } else {
+                        if (validate && !isInteger(key)) {
+                            throw new JsonPatchError("Expected an unsigned base-10 integer value, making the new referenced value the array element with the zero-based index", "OPERATION_PATH_ILLEGAL_ARRAY_INDEX", p - 1, patch.path, patch);
+                        }
+                        key = parseInt(key, 10);
+                    }
+                    if (t >= len) {
+                        if (validate && patch.op === "add" && key > obj.length) {
+                            throw new JsonPatchError("The specified index MUST NOT be greater than the number of elements in the array", "OPERATION_VALUE_OUT_OF_BOUNDS", p - 1, patch.path, patch);
+                        }
+                        result = arrOps[patch.op].call(patch, obj, key, tree); // Apply patch
+                        break;
+                    }
+                } else {
+                    if (key && key.indexOf('~') != -1)
+                        key = key.replace(/~1/g, '/').replace(/~0/g, '~'); // escape chars
+                    if (t >= len) {
+                        result = objOps[patch.op].call(patch, obj, key, tree); // Apply patch
+                        break;
+                    }
+                }
+                obj = obj[key];
+            }
+        }
+        return result;
+    }
+    jsonpatch.apply = apply;
+
+    function compare(tree1, tree2) {
+        var patches = [];
+        _generate(tree1, tree2, patches, '');
+        return patches;
+    }
+    jsonpatch.compare = compare;
+
+    var JsonPatchError = (function (_super) {
+        __extends(JsonPatchError, _super);
+        function JsonPatchError(message, name, index, operation, tree) {
+            _super.call(this, message);
+            this.message = message;
+            this.name = name;
+            this.index = index;
+            this.operation = operation;
+            this.tree = tree;
+        }
+        return JsonPatchError;
+    })(OriginalError);
+    jsonpatch.JsonPatchError = JsonPatchError;
+
+    jsonpatch.Error = JsonPatchError;
+
+    /**
+    * Recursively checks whether an object has any undefined values inside.
+    */
+    function hasUndefined(obj) {
+        if (obj === undefined) {
+            return true;
+        }
+
+        if (typeof obj == "array" || typeof obj == "object") {
+            for (var i in obj) {
+                if (hasUndefined(obj[i])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+    * Validates a single operation. Called from `jsonpatch.validate`. Throws `JsonPatchError` in case of an error.
+    * @param {object} operation - operation object (patch)
+    * @param {number} index - index of operation in the sequence
+    * @param {object} [tree] - object where the operation is supposed to be applied
+    * @param {string} [existingPathFragment] - comes along with `tree`
+    */
+    function validator(operation, index, tree, existingPathFragment) {
+        if (typeof operation !== 'object' || operation === null || _isArray(operation)) {
+            throw new JsonPatchError('Operation is not an object', 'OPERATION_NOT_AN_OBJECT', index, operation, tree);
+        } else if (!objOps[operation.op]) {
+            throw new JsonPatchError('Operation `op` property is not one of operations defined in RFC-6902', 'OPERATION_OP_INVALID', index, operation, tree);
+        } else if (typeof operation.path !== 'string') {
+            throw new JsonPatchError('Operation `path` property is not a string', 'OPERATION_PATH_INVALID', index, operation, tree);
+        } else if ((operation.op === 'move' || operation.op === 'copy') && typeof operation.from !== 'string') {
+            throw new JsonPatchError('Operation `from` property is not present (applicable in `move` and `copy` operations)', 'OPERATION_FROM_REQUIRED', index, operation, tree);
+        } else if ((operation.op === 'add' || operation.op === 'replace' || operation.op === 'test') && operation.value === undefined) {
+            throw new JsonPatchError('Operation `value` property is not present (applicable in `add`, `replace` and `test` operations)', 'OPERATION_VALUE_REQUIRED', index, operation, tree);
+        } else if ((operation.op === 'add' || operation.op === 'replace' || operation.op === 'test') && hasUndefined(operation.value)) {
+            throw new JsonPatchError('Operation `value` property is not present (applicable in `add`, `replace` and `test` operations)', 'OPERATION_VALUE_CANNOT_CONTAIN_UNDEFINED', index, operation, tree);
+        } else if (tree) {
+            if (operation.op == "add") {
+                var pathLen = operation.path.split("/").length;
+                var existingPathLen = existingPathFragment.split("/").length;
+                if (pathLen !== existingPathLen + 1 && pathLen !== existingPathLen) {
+                    throw new JsonPatchError('Cannot perform an `add` operation at the desired path', 'OPERATION_PATH_CANNOT_ADD', index, operation, tree);
+                }
+            } else if (operation.op === 'replace' || operation.op === 'remove' || operation.op === '_get') {
+                if (operation.path !== existingPathFragment) {
+                    throw new JsonPatchError('Cannot perform the operation at a path that does not exist', 'OPERATION_PATH_UNRESOLVABLE', index, operation, tree);
+                }
+            } else if (operation.op === 'move' || operation.op === 'copy') {
+                var existingValue = { op: "_get", path: operation.from, value: undefined };
+                var error = jsonpatch.validate([existingValue], tree);
+                if (error && error.name === 'OPERATION_PATH_UNRESOLVABLE') {
+                    throw new JsonPatchError('Cannot perform the operation from a path that does not exist', 'OPERATION_FROM_UNRESOLVABLE', index, operation, tree);
+                }
+            }
+        }
+    }
+    jsonpatch.validator = validator;
+
+    /**
+    * Validates a sequence of operations. If `tree` parameter is provided, the sequence is additionally validated against the object tree.
+    * If error is encountered, returns a JsonPatchError object
+    * @param sequence
+    * @param tree
+    * @returns {JsonPatchError|undefined}
+    */
+    function validate(sequence, tree) {
+        try  {
+            if (!_isArray(sequence)) {
+                throw new JsonPatchError('Patch sequence must be an array', 'SEQUENCE_NOT_AN_ARRAY');
+            }
+
+            if (tree) {
+                tree = JSON.parse(JSON.stringify(tree)); //clone tree so that we can safely try applying operations
+                apply.call(this, tree, sequence, true);
+            } else {
+                for (var i = 0; i < sequence.length; i++) {
+                    this.validator(sequence[i], i);
+                }
+            }
+        } catch (e) {
+            if (e instanceof JsonPatchError) {
+                return e;
+            } else {
+                throw e;
+            }
+        }
+    }
+    jsonpatch.validate = validate;
+})(jsonpatch || (jsonpatch = {}));
+
+if (typeof exports !== "undefined") {
+    exports.apply = jsonpatch.apply;
+    exports.observe = jsonpatch.observe;
+    exports.unobserve = jsonpatch.unobserve;
+    exports.generate = jsonpatch.generate;
+    exports.compare = jsonpatch.compare;
+    exports.validate = jsonpatch.validate;
+    exports.validator = jsonpatch.validator;
+    exports.JsonPatchError = jsonpatch.JsonPatchError;
+    exports.Error = jsonpatch.Error;
+}
+
+},{}],2:[function(require,module,exports){
+(function (root, factory){
+  'use strict';
+
+  /*istanbul ignore next:cant test*/
+  if (typeof module === 'object' && typeof module.exports === 'object') {
+    module.exports = factory();
+  } else if (typeof define === 'function' && define.amd) {
+    // AMD. Register as an anonymous module.
+    define([], factory);
+  } else {
+    // Browser globals
+    root.objectPath = factory();
+  }
+})(this, function(){
+  'use strict';
+
+  var
+    toStr = Object.prototype.toString,
+    _hasOwnProperty = Object.prototype.hasOwnProperty;
+
+  function isEmpty(value){
+    if (!value) {
+      return true;
+    }
+    if (isArray(value) && value.length === 0) {
+        return true;
+    } else if (!isString(value)) {
+        for (var i in value) {
+            if (_hasOwnProperty.call(value, i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+  }
+
+  function toString(type){
+    return toStr.call(type);
+  }
+
+  function isNumber(value){
+    return typeof value === 'number' || toString(value) === "[object Number]";
+  }
+
+  function isString(obj){
+    return typeof obj === 'string' || toString(obj) === "[object String]";
+  }
+
+  function isObject(obj){
+    return typeof obj === 'object' && toString(obj) === "[object Object]";
+  }
+
+  function isArray(obj){
+    return typeof obj === 'object' && typeof obj.length === 'number' && toString(obj) === '[object Array]';
+  }
+
+  function isBoolean(obj){
+    return typeof obj === 'boolean' || toString(obj) === '[object Boolean]';
+  }
+
+  function getKey(key){
+    var intKey = parseInt(key);
+    if (intKey.toString() === key) {
+      return intKey;
+    }
+    return key;
+  }
+
+  function set(obj, path, value, doNotReplace){
+    if (isNumber(path)) {
+      path = [path];
+    }
+    if (isEmpty(path)) {
+      return obj;
+    }
+    if (isString(path)) {
+      return set(obj, path.split('.').map(getKey), value, doNotReplace);
+    }
+    var currentPath = path[0];
+
+    if (path.length === 1) {
+      var oldVal = obj[currentPath];
+      if (oldVal === void 0 || !doNotReplace) {
+        obj[currentPath] = value;
+      }
+      return oldVal;
+    }
+
+    if (obj[currentPath] === void 0) {
+      //check if we assume an array
+      if(isNumber(path[1])) {
+        obj[currentPath] = [];
+      } else {
+        obj[currentPath] = {};
+      }
+    }
+
+    return set(obj[currentPath], path.slice(1), value, doNotReplace);
+  }
+
+  function del(obj, path) {
+    if (isNumber(path)) {
+      path = [path];
+    }
+
+    if (isEmpty(obj)) {
+      return void 0;
+    }
+
+    if (isEmpty(path)) {
+      return obj;
+    }
+    if(isString(path)) {
+      return del(obj, path.split('.'));
+    }
+
+    var currentPath = getKey(path[0]);
+    var oldVal = obj[currentPath];
+
+    if(path.length === 1) {
+      if (oldVal !== void 0) {
+        if (isArray(obj)) {
+          obj.splice(currentPath, 1);
+        } else {
+          delete obj[currentPath];
+        }
+      }
+    } else {
+      if (obj[currentPath] !== void 0) {
+        return del(obj[currentPath], path.slice(1));
+      }
+    }
+
+    return obj;
+  }
+
+  var objectPath = function(obj) {
+    return Object.keys(objectPath).reduce(function(proxy, prop) {
+      if (typeof objectPath[prop] === 'function') {
+        proxy[prop] = objectPath[prop].bind(objectPath, obj);
+      }
+
+      return proxy;
+    }, {});
+  };
+
+  objectPath.has = function (obj, path) {
+    if (isEmpty(obj)) {
+      return false;
+    }
+
+    if (isNumber(path)) {
+      path = [path];
+    } else if (isString(path)) {
+      path = path.split('.');
+    }
+
+    if (isEmpty(path) || path.length === 0) {
+      return false;
+    }
+
+    for (var i = 0; i < path.length; i++) {
+      var j = path[i];
+      if ((isObject(obj) || isArray(obj)) && _hasOwnProperty.call(obj, j)) {
+        obj = obj[j];
+      } else {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  objectPath.ensureExists = function (obj, path, value){
+    return set(obj, path, value, true);
+  };
+
+  objectPath.set = function (obj, path, value, doNotReplace){
+    return set(obj, path, value, doNotReplace);
+  };
+
+  objectPath.insert = function (obj, path, value, at){
+    var arr = objectPath.get(obj, path);
+    at = ~~at;
+    if (!isArray(arr)) {
+      arr = [];
+      objectPath.set(obj, path, arr);
+    }
+    arr.splice(at, 0, value);
+  };
+
+  objectPath.empty = function(obj, path) {
+    if (isEmpty(path)) {
+      return obj;
+    }
+    if (isEmpty(obj)) {
+      return void 0;
+    }
+
+    var value, i;
+    if (!(value = objectPath.get(obj, path))) {
+      return obj;
+    }
+
+    if (isString(value)) {
+      return objectPath.set(obj, path, '');
+    } else if (isBoolean(value)) {
+      return objectPath.set(obj, path, false);
+    } else if (isNumber(value)) {
+      return objectPath.set(obj, path, 0);
+    } else if (isArray(value)) {
+      value.length = 0;
+    } else if (isObject(value)) {
+      for (i in value) {
+        if (_hasOwnProperty.call(value, i)) {
+          delete value[i];
+        }
+      }
+    } else {
+      return objectPath.set(obj, path, null);
+    }
+  };
+
+  objectPath.push = function (obj, path /*, values */){
+    var arr = objectPath.get(obj, path);
+    if (!isArray(arr)) {
+      arr = [];
+      objectPath.set(obj, path, arr);
+    }
+
+    arr.push.apply(arr, Array.prototype.slice.call(arguments, 2));
+  };
+
+  objectPath.coalesce = function (obj, paths, defaultValue) {
+    var value;
+
+    for (var i = 0, len = paths.length; i < len; i++) {
+      if ((value = objectPath.get(obj, paths[i])) !== void 0) {
+        return value;
+      }
+    }
+
+    return defaultValue;
+  };
+
+  objectPath.get = function (obj, path, defaultValue){
+    if (isNumber(path)) {
+      path = [path];
+    }
+    if (isEmpty(path)) {
+      return obj;
+    }
+    if (isEmpty(obj)) {
+      return defaultValue;
+    }
+    if (isString(path)) {
+      return objectPath.get(obj, path.split('.'), defaultValue);
+    }
+
+    var currentPath = getKey(path[0]);
+
+    if (path.length === 1) {
+      if (obj[currentPath] === void 0) {
+        return defaultValue;
+      }
+      return obj[currentPath];
+    }
+
+    return objectPath.get(obj[currentPath], path.slice(1), defaultValue);
+  };
+
+  objectPath.del = function(obj, path) {
+    return del(obj, path);
+  };
+
+  return objectPath;
+});
+
+},{}],3:[function(require,module,exports){
 /*jslint onevar:true, undef:true, newcap:true, regexp:true, bitwise:true, maxerr:50, indent:4, white:false, nomen:false, plusplus:false */
 /*global define:false, require:false, exports:false, module:false, signals:false */
 
@@ -445,7 +1446,7 @@
 
 }(this));
 
-},{}],2:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 ;(function(win){
 	var store = {},
 		doc = win.document,
@@ -622,7 +1623,7 @@
 
 })(Function('return this')());
 
-},{}],3:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 /**
  * Created by Phuc on 9/30/2015.
  */
@@ -637,7 +1638,7 @@ exports.BSKeyHistories = BSKeyHistories;
 var BSKeyIsfrozen = '__time_machine_frozen';
 exports.BSKeyIsfrozen = BSKeyIsfrozen;
 
-},{}],4:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/28/2015.
@@ -704,7 +1705,7 @@ module.exports = function (StoreProvider) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./_const":3,"./tm-controls":9,"store":2}],5:[function(require,module,exports){
+},{"./_const":5,"./tm-controls":12,"store":4}],7:[function(require,module,exports){
 /**
  * Created by Phuc on 9/9/2015.
  */
@@ -712,11 +1713,145 @@ module.exports = function (StoreProvider) {
 'use strict';
 
 var StoreProvider = require('./ng-store-provider');
-var Store = require('./ng-store');
+var Store = require('./ng-store-focus');
 
 require('./_index.js')(StoreProvider(Store));
 
-},{"./_index.js":4,"./ng-store":7,"./ng-store-provider":6}],6:[function(require,module,exports){
+},{"./_index.js":6,"./ng-store-focus":8,"./ng-store-provider":9}],8:[function(require,module,exports){
+(function (global){
+/**
+ * Created by Phuc on 9/10/2015.
+ */
+'use strict';
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _get = function get(_x3, _x4, _x5) { var _again = true; _function: while (_again) { var object = _x3, property = _x4, receiver = _x5; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x3 = parent; _x4 = property; _x5 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var angular = (typeof window !== "undefined" ? window['angular'] : typeof global !== "undefined" ? global['angular'] : null);
+var _forEach = angular.forEach;
+var _isArray = angular.isArray;
+var Store = require('./ng-store');
+var JsonPatch = require('fast-json-patch');
+var ObjectPath = require('object-path');
+
+/**
+ * The aims of Focus Store:
+ *
+ *   * When state change on specific fields, focus store only delivery `trigger` to directive which register to specific
+ *   that fields.
+ *   * It is inspired by JSON Patch [RFC6902](https://tools.ietf.org/html/rfc6902), [jsonpatch.com](http://jsonpatch.com),
+ *   [JSON-Patch](https://github.com/Starcounter-Jack/JSON-Patch)
+ *
+ */
+
+var FocusStore = (function (_Store) {
+  _inherits(FocusStore, _Store);
+
+  function FocusStore(Actions, $q, $ajax, initialState) {
+    _classCallCheck(this, FocusStore);
+
+    _get(Object.getPrototypeOf(FocusStore.prototype), 'constructor', this).call(this, Actions, $q, $ajax, initialState);
+    this.observer = JsonPatch.observe(this.state);
+  }
+
+  _createClass(FocusStore, [{
+    key: '__makeSelector',
+    value: function __makeSelector($scope, scopeAttrMap, handleDef) {
+      var storePaths = arguments.length <= 3 || arguments[3] === undefined ? null : arguments[3];
+
+      var selector = _get(Object.getPrototypeOf(FocusStore.prototype), '__makeSelector', this).call(this, $scope, scopeAttrMap, handleDef);
+
+      if (storePaths !== null) {
+        selector.storePaths = _isArray(storePaths) ? storePaths : [storePaths];
+      }
+
+      return selector;
+    }
+  }, {
+    key: 'register',
+    value: function register($scope, storePaths, handleDef, skipFirstTime) {
+      return _get(Object.getPrototypeOf(FocusStore.prototype), '__register', this).call(this, this.__makeSelector($scope, null, handleDef, storePaths), skipFirstTime);
+    }
+  }, {
+    key: 'getFocusSelectors',
+    value: function getFocusSelectors(patches) {
+      var _this = this;
+
+      var nextTriggerSelectors = [];
+
+      patches.forEach(function (patch) {
+        Array.prototype.push.apply(nextTriggerSelectors, _this.selectors.filter(function (selector) {
+          return !selector.storePaths || selector.storePaths.some(function (path) {
+            return patch.path.indexOf('/' + path) === 0;
+          });
+        }));
+      });
+
+      return nextTriggerSelectors;
+    }
+  }, {
+    key: '__getSelectors',
+    value: function __getSelectors(state) {
+      var patches = JsonPatch.generate(this.observer);
+      return this.getFocusSelectors(patches);
+    }
+  }, {
+    key: '__execSelectorHandler',
+    value: function __execSelectorHandler(selector) {
+      var state = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+
+      if (state == null) {
+        state = this.state;
+      }
+
+      var handleDef = selector.handleDef;
+      var $scope = selector.$scope;
+
+      var argsPick = selector.storePaths.map(function (path) {
+        return angular.copy(ObjectPath.get(state, path.replace('/', '.')));
+      });
+
+      var result;
+      if (!selector.handleDef) {
+        result = argsPick;
+      } else {
+        var fn,
+            fnArgs = [];
+        if (angular.isArray(handleDef)) {
+          fn = handleDef[handleDef.length - 1];
+          fnArgs = handleDef.slice(0, handleDef.length - 1);
+        } else {
+          fn = handleDef;
+        }
+        fnArgs.unshift.apply(fnArgs, argsPick);
+        if (typeof fn === 'string') {
+          result = this[fn].apply(this, fnArgs);
+        } else {
+          result = fn.apply(null, fnArgs);
+        }
+      }
+
+      _forEach(result, function (value, attr) {
+        $scope[attr] = value;
+      });
+
+      return true;
+    }
+  }]);
+
+  return FocusStore;
+})(Store);
+
+module.exports = FocusStore;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+
+},{"./ng-store":10,"fast-json-patch":1,"object-path":2}],9:[function(require,module,exports){
 /**
  * Created by Phuc on 9/10/2015.
  */
@@ -765,7 +1900,7 @@ module.exports = function (ClassStore) {
   };
 };
 
-},{"./utility-store":10}],7:[function(require,module,exports){
+},{"./utility-store":13}],10:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/10/2015.
@@ -1106,9 +2241,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],8:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 module.exports = '<style>\n  .in-frozen-mode {\n    background-color: #2574A9;\n    border-top: 1px solid #2574A9;\n  }\n\n  #tm-editor-instance {\n    height: 500px;\n  }\n</style>\n<nav class="navbar navbar-default navbar-fixed-bottom" ng-class="{\'navbar-inverse in-frozen-mode\': inFrozen}">\n  <div class="container">\n    <div class="navbar-brand" href="#">ngTimeMachine</div>\n    <div ng-if="inFrozen" class="navbar-brand" style="color: #fff;" href="#">In Frozen Time</div>\n    <p class="navbar-text">States <span class="badge">{{histories.length}}</span></p>\n    <button type="button" class="btn btn-info navbar-btn"\n            ng-click="openInjectEditor()"\n            title="Click to inject the register callback results">\n      Injectable Registers <span class="badge">{{injectableRegisters.length}}</span></button>\n\n    <div class="navbar-right">\n      <button type="button" ng-click="unFreeze()" ng-if="inFrozen" class="btn btn-danger">UnFreeze</button>\n      <button type="button" ng-click="frozenTime(timeline_index)" class="btn btn-success"\n              title="Click to frozen the next time you reload the browser">Frozen\n        Timeline <span class="badge">{{timeline_index + 1}}</span></button>\n      <button type="button" class="btn btn-default navbar-btn" ng-click="go(-1)"><i\n          class="glyphicon glyphicon-chevron-left"></i> Previous\n        <button type="button" class="btn btn-default navbar-btn" ng-click="go(1)">Next <i\n            class="glyphicon glyphicon-chevron-right"></i></button>\n      </button>\n    </div>\n  </div>\n</nav>\n\n<!-------- Inject register Editor ------------------>\n<div id="tm-inject-editor" class="modal fade" tabindex="-1" role="dialog">\n  <div class="modal-dialog modal-lg">\n    <div class="modal-content">\n      <div class="modal-header">\n        <h4>ngTimeMachine - Inject results to selected register\n          <div class="pull-right">\n            <button class="btn btn-sm btn-warning" ng-click="saveRegistersPermanent()"\n                    title="Save Injected results of registers permanently">Save Permanent\n            </button>\n            <button class="btn btn-sm btn-success" ng-click="applyInjectResult()">Apply Current Timeline\n            </button>\n          </div>\n        </h4>\n      </div>\n      <div class="modal-body">\n        <div class="row">\n          <div class="col-md-3">\n            <div class="list-group">\n              <button ng-repeat="item in injectableRegisters"\n                      ng-click="editRegisterResult($index)"\n                      type="button" class="list-group-item"\n                      ng-class="{active: item.selected}"\n                  >Register #{{item.storeIndex}}\n              </button>\n            </div>\n          </div>\n          <div class="col-md-9">\n            <div class="chosen-register">\n              <pre>{{chosenRegister.key}}</pre>\n            </div>\n            <div id="tm-editor-instance"></div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>';
-},{}],9:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function (global){
 /**
  * Created by Phuc on 9/9/2015.
@@ -1193,7 +2328,7 @@ module.exports = Directive;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./_const":3,"./templates/tm-controls.html":8}],10:[function(require,module,exports){
+},{"./_const":5,"./templates/tm-controls.html":11}],13:[function(require,module,exports){
 /**
  * Created by Phuc on 9/10/2015.
  */
@@ -1245,7 +2380,7 @@ Store.makeActions = function (actionNames) {
 
 module.exports = Store;
 
-},{"signals":1}]},{},[5])
+},{"signals":3}]},{},[7])
 
 
-//# sourceMappingURL=ng-time-machine.js.map
+//# sourceMappingURL=ng-time-machine-store-focus.js.map

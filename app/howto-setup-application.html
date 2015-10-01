@@ -5,7 +5,7 @@
         
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-        <title>Simple setup | Introduction</title>
+        <title>Simple setup | ngTimeMachine</title>
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="generator" content="GitBook 2.4.1">
@@ -38,7 +38,7 @@
     <body>
         
         
-    <div class="book" data-level="1.2" data-basepath=".." data-revision="Sat Sep 26 2015 01:42:46 GMT+0700 (SE Asia Standard Time)">
+    <div class="book" data-level="1.2" data-basepath=".." data-revision="Thu Oct 01 2015 09:07:12 GMT+0700 (SE Asia Standard Time)">
     
 
 <div class="book-summary">
@@ -259,7 +259,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="../" >Introduction</a>
+        <a href="../" >ngTimeMachine</a>
     </h1>
 </div>
 
@@ -271,6 +271,7 @@
                     
                         <h1 id="how-to-setup-application">How to setup application</h1>
 <h3 id="in-the-html-of-the-page">In the html of the page</h3>
+<h4 id="for-download-and-use-directly">For download and use directly</h4>
 <p>Include the script is straight forward</p>
 <pre><code class="lang-html"><span class="hljs-doctype">&lt;!doctype html&gt;</span>
 <span class="hljs-tag">&lt;<span class="hljs-title">html</span> <span class="hljs-attribute">lang</span>=<span class="hljs-value">&quot;en&quot;</span> <span class="hljs-attribute">data-framework</span>=<span class="hljs-value">&quot;angularjs&quot;</span>&gt;</span>
@@ -282,9 +283,12 @@
 <span class="hljs-comment">&lt;!-- your page content with angular directive &amp; controllers etc... --&gt;</span>
 
 <span class="hljs-tag">&lt;<span class="hljs-title">script</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">&quot;angular.js&quot;</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
-<span class="hljs-tag">&lt;<span class="hljs-title">script</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">&quot;ng-timemachine.js&quot;</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">script</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">&quot;dist/ng-timemachine.js&quot;</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
 <span class="hljs-tag">&lt;<span class="hljs-title">script</span> <span class="hljs-attribute">src</span>=<span class="hljs-value">&quot;application.js&quot;</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-title">script</span>&gt;</span>
 <span class="hljs-tag">&lt;/<span class="hljs-title">body</span>&gt;</span>
+</code></pre>
+<h4 id="for-bower">For bower</h4>
+<pre><code class="lang-shell">bower install -S ng-time-machine
 </code></pre>
 <h3 id="the-angular-app">The angular APP</h3>
 <p>Using TimeMachine is simple as the angular module declaration. You create your application with dependency <code>ngTimeMachine</code>.
